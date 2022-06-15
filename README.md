@@ -213,3 +213,36 @@ export default async function handler(
   });
 }
 ```
+
+---
+
+POST요청을 보낼때 header를 지정해 주어야함
+
+Frontend
+
+```jsx
+const onValid = (data: IEnterForm) => {
+  fetch('/api/users/enter', {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+};
+```
+
+Backend
+
+```jsx
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== 'POST') {
+    res.status(405).end();
+  }
+  console.log(JSON.parse(req.body.phone));
+  res.status(200).end();
+}
+```
