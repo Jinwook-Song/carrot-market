@@ -7,6 +7,38 @@
 
 ---
 
+## tsConfig.json
+
+```jsx
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@libs/*": ["libs/*"],
+      "@components/*": ["components/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
+}
+```
+
+---
+
 ## Prisma
 
 nodejs, typescript의 ORM
@@ -246,3 +278,36 @@ export default async function handler(
   res.status(200).end();
 }
 ```
+
+---
+
+withHandler
+
+```jsx
+import { NextApiRequest, NextApiResponse } from 'next';
+
+export default function withHandler(
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+  fn: (req: NextApiRequest, res: NextApiResponse) => void
+) {
+  return async function (req: NextApiRequest, res: NextApiResponse) {
+    if (req.method !== method) {
+      return res.status(405).end();
+    }
+    try {
+      await fn(req, res);
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ error });
+    }
+  };
+}
+
+// NextJS는 withHandler가 Return하는것을 실행
+```
+
+---
+
+### Auth Logic
+
+`phone # --> check exist --> it does, Send Token(connected with User) to the Phone (use Twilo) --> Client submit that Token --> If is correct, Authenticate`
