@@ -1,6 +1,9 @@
+import twilio from 'twilio';
 import { NextApiRequest, NextApiResponse } from 'next';
 import withHandler, { ResponseType } from 'libs/server/withHandler';
 import client from '@libs/server/client';
+
+const twilioClient = twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
 
 async function handler(
   req: NextApiRequest,
@@ -30,6 +33,16 @@ async function handler(
       },
     },
   });
+  if (phone) {
+    const message = await twilioClient.messages.create({
+      messagingServiceSid: process.env.TWILIO_MSID,
+      // FIXME: 실제 입력 폰 번호가 들어갈 위치(국가코드 +82106363XXXX로 입력하여야 함)
+      // to: phone
+      to: process.env.MY_PHONE!,
+      body: `Your login token is ${payload}.`,
+    });
+    console.log(message);
+  }
 
   res.json({
     ok: true,
