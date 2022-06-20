@@ -34,14 +34,16 @@ async function handler(
     },
   });
   if (phone) {
-    const message = await twilioClient.messages.create({
+    /*     const message = await twilioClient.messages.create({
       messagingServiceSid: process.env.TWILIO_MSID,
       // FIXME: 실제 입력 폰 번호가 들어갈 위치(국가코드 +82106363XXXX로 입력하여야 함)
       // to: phone
       to: process.env.MY_PHONE!,
       body: `Your login token is ${payload}.`,
     });
-    console.log(message);
+    console.log(message); */
+  } else if (email) {
+    // TODO: email api
   }
 
   res.json({
