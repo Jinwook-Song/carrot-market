@@ -3,6 +3,15 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import withHandler, { ResponseType } from '@libs/server/withHandler';
 import client from '@libs/server/client';
 
+// iron session에 sesstion type 정의
+declare module 'iron-session' {
+  interface IronSessionData {
+    user?: {
+      id: number;
+    };
+  }
+}
+
 async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseType>
