@@ -311,3 +311,382 @@ export default function withHandler(
 ### Auth Logic
 
 `phone # --> check exist --> it does, Send Token(connected with User) to the Phone (use Twilo) --> Client submit that Token --> If is correct, Authenticate`
+
+---
+
+User create
+
+유저가 있는지 확인 후, 생성
+
+```jsx
+const { email, phone } = req.body;
+let user;
+if (email) {
+  user = await client.user.findUnique({
+    where: { email },
+  });
+  if (user) {
+    console.log('Found user');
+  }
+  if (!user) {
+    console.log('Did not find user');
+    user = await client.user.create({
+      data: {
+        name: 'Anonymous',
+        email,
+      },
+    });
+  }
+  console.log(user);
+}
+if (phone) {
+  user = await client.user.findUnique({
+    where: { phone: +phone },
+  });
+  if (user) {
+    console.log('Found user');
+  }
+  if (!user) {
+    console.log('Did not find user');
+    user = await client.user.create({
+      data: {
+        name: 'Anonymous',
+        phone: +phone,
+      },
+    });
+  }
+  console.log(user);
+}
+```
+
+upsert
+
+위 과정을 es6 문법과 upsert method를 사용하여 간결하게 정리
+
+```jsx
+const payload = email ? { email } : { phone: +phone };
+const user = await client.user.upsert({
+  where: {
+    ...payload,
+  },
+  create: {
+    name: 'Anonymous',
+    ...payload,
+  },
+  update: {},
+});
+```
+
+---
+
+Token model (schema update)
+
+`npx prisma db push`
+
+```jsx
+model User {
+  id        Int      @id @default(autoincrement())
+  phone     Int?     @unique
+  email     String?  @unique
+  name      String
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tokens    Token[]
+}
+
+model Token {
+  id        Int      @id @default(autoincrement())
+  payload   String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+```
+
+실제 Token은 user를 저장하지 않고, userId를 참조해서 User에 접근
+
+---
+
+Create Token
+
+```tsx
+const { email, phone } = req.body;
+const payload = email ? { email } : { phone: +phone };
+
+const token = await client.token.create({
+  data: {
+    payload: '1234',
+    user: {
+      // User가 없다면 생성하고, 연결 => user.upsert 대체 할 수 있음
+      connectOrCreate: {
+        where: {
+          ...payload,
+        },
+        create: {
+          name: 'Anonymous',
+          ...payload,
+        },
+      },
+    },
+  },
+});
+```
+
+---
+
+`npm i twilio`
+
+Tutorial
+
+https://www.twilio.com/docs/messaging/services/tutorials/how-to-send-sms-messages-services-node-js
+
+```jsx
+const twilioClient = twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
+
+if (phone) {
+    const message = await twilioClient.messages.create({
+      messagingServiceSid: process.env.TWILIO_MSID,
+      // FIXME: 실제 입력 폰 번호가 들어갈 위치(국가코드 +82106363XXXX로 입력하여야 함)
+      // to: phone
+      to: process.env.MY_PHONE!,
+      body: `Your login token is ${payload}.`,
+    });
+    console.log(message);
+  }
+```
+
+```bash
+.env file
+TWILIO_SID=
+TWILIO_TOKEN=
+TWILIO_MSID=
+MY_PHONE=
+```
+
+---
+
+`onDelete: Cascade`
+
+User가 삭제되면, Token도 삭제
+
+```jsx
+model Token {
+  id        Int      @id @default(autoincrement())
+  payload   String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+```
+
+---
+
+Generic response
+
+useMutation.tsx
+
+```jsx
+interface UseMutationState<T> {
+  loading: boolean;
+  data?: T;
+  error?: object;
+}
+type UseMutationResult<T> = [(data: any) => void, UseMutationState<T>];
+
+export default function useMutation<T = any>(
+  url: string
+): UseMutationResult<T> {
+  return [mutation, { ...state }];
+}
+```
+
+```tsx
+const [enter, { loading, data, error }] =
+  useMutation<Pick<ResponseType, 'ok'>>('/api/users/enter');
+```
+
+---
+
+`npm i iron-session`
+
+[https://github.com/vvo/iron-session#readme](https://github.com/vvo/iron-session#readme)
+
+```tsx
+import { withIronSessionApiRoute } from 'iron-session/next';
+import { NextApiRequest, NextApiResponse } from 'next';
+import withHandler, { ResponseType } from '@libs/server/withHandler';
+import client from '@libs/server/client';
+
+declare module 'iron-session' {
+  interface IronSessionData {
+    user?: {
+      id: number;
+    };
+  }
+}
+
+async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<ResponseType>
+) {
+  const { token } = req.body;
+  const exists = await client.token.findUnique({
+    where: {
+      payload: token,
+    },
+    // userId를 참조하여 user 정보를 가져올 수 있다.
+    include: {
+      user: true,
+    },
+  });
+  if (!exists) res.status(404).end();
+  // token 인증이 된 경우 session에 저장
+  req.session.user = {
+    id: exists?.userId,
+  };
+  // encrypt the session
+  await req.session.save();
+  res.status(200).end();
+}
+
+export default withIronSessionApiRoute(withHandler('POST', handler), {
+  cookieName: 'carrot_cookie',
+  password: 'complex_password_at_least_32_characters_long',
+  // secure: true should be used in production (HTTPS) but can't be used in development (HTTP)
+  cookieOptions: {
+    secure: process.env.NODE_ENV === 'production',
+  },
+});
+```
+
+---
+
+get user profile
+
+모든 api는 실제 백엔드 없이 개별적으로 동작하기 때문에
+
+각 api 마다 type과 withIronSessionApiRoute config를 매번 설정해줘야함
+
+쿠키에 세션이 userId가 저장되어 있기 때문에 Id에 해당하는 user정보를 가져올 수 있음
+
+```tsx
+import { withIronSessionApiRoute } from 'iron-session/next';
+import { NextApiRequest, NextApiResponse } from 'next';
+import withHandler, { ResponseType } from '@libs/server/withHandler';
+import client from '@libs/server/client';
+
+// iron session에 sesstion type 정의
+declare module 'iron-session' {
+  interface IronSessionData {
+    user?: {
+      id: number;
+    };
+  }
+}
+
+async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<ResponseType>
+) {
+  console.log(req.session.user);
+  const profile = await client.user.findUnique({
+    where: {
+      id: req.session.user?.id,
+    },
+  });
+  res.json({
+    ok: true,
+    profile,
+  });
+}
+
+export default withIronSessionApiRoute(withHandler('GET', handler), {
+  cookieName: 'carrot_cookie',
+  password: 'complex_password_at_least_32_characters_long',
+  // secure: true should be used in production (HTTPS) but can't be used in development (HTTP)
+  cookieOptions: {
+    secure: process.env.NODE_ENV === 'production',
+  },
+});
+```
+
+functional programming
+
+```tsx
+import { withIronSessionApiRoute } from 'iron-session/next';
+
+// iron session에 sesstion type 정의
+declare module 'iron-session' {
+  interface IronSessionData {
+    user?: {
+      id: number;
+    };
+  }
+}
+
+const cookieOptions = {
+  cookieName: 'carrot_cookie',
+  password: process.env.COOKIE_PASSWORD!,
+  // secure: true should be used in production (HTTPS) but can't be used in development (HTTP)
+  cookieOptions: {
+    secure: process.env.NODE_ENV === 'production',
+  },
+};
+
+export function withApiSession(fn: any) {
+  return withIronSessionApiRoute(fn, cookieOptions);
+}
+```
+
+```tsx
+export default withApiSession(withHandler('GET', handler));
+```
+
+---
+
+(SMS, EMAIL)로 받은 토큰 입력 → 해당 토큰이 존재 → 토큰에 연결된 UserID 세션에 저장 (Authentication) → 인증 후, 사용된 토큰 삭제 (+ 인증된 유저와 연결된 모든 토큰 삭제)
+
+```tsx
+import { NextApiRequest, NextApiResponse } from 'next';
+import withHandler, { ResponseType } from '@libs/server/withHandler';
+import client from '@libs/server/client';
+import { withApiSession } from '@libs/server/withSession';
+
+async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<ResponseType>
+) {
+  const { token } = req.body;
+  const matchedToken = await client.token.findUnique({
+    where: {
+      payload: token,
+    },
+    // userId를 참조하여 user 정보를 가져올 수 있다.
+    include: {
+      user: true,
+    },
+  });
+  if (!matchedToken) return res.status(404).end();
+  // token 인증이 된 경우 session에 저장
+  req.session.user = {
+    id: matchedToken.userId,
+  };
+  // encrypt the session
+  await req.session.save();
+  // 세션 저장 후, 인증된 유저와 연결된 토큰 모두 제거
+  // 인증에 사용된 토큰을 다시 사용하지 못하게 하기 위함
+  await client.token.deleteMany({
+    where: {
+      userId: matchedToken.userId,
+    },
+  });
+  res.json({
+    ok: true,
+  });
+}
+
+export default withApiSession(withHandler('POST', handler));
+```
