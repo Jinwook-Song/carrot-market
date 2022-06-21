@@ -16,27 +16,19 @@ async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseType>
 ) {
-  const { token } = req.body;
-  const exists = await client.token.findUnique({
+  console.log(req.session.user);
+  const profile = await client.user.findUnique({
     where: {
-      payload: token,
-    },
-    // userId를 참조하여 user 정보를 가져올 수 있다.
-    include: {
-      user: true,
+      id: req.session.user?.id,
     },
   });
-  if (!exists) return res.status(404).end();
-  // token 인증이 된 경우 session에 저장
-  req.session.user = {
-    id: exists.userId,
-  };
-  // encrypt the session
-  await req.session.save();
-  res.status(200).end();
+  res.json({
+    ok: true,
+    profile,
+  });
 }
 
-export default withIronSessionApiRoute(withHandler('POST', handler), {
+export default withIronSessionApiRoute(withHandler('GET', handler), {
   cookieName: 'carrot_cookie',
   password: 'complex_password_at_least_32_characters_long',
   // secure: true should be used in production (HTTPS) but can't be used in development (HTTP)

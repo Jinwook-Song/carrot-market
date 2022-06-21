@@ -7,7 +7,7 @@ export interface ResponseType {
 
 export default function withHandler(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE',
-  handler: NextApiHandler
+  handler: (req: NextApiRequest, res: NextApiResponse) => void
 ) {
   return async function (
     req: NextApiRequest,
