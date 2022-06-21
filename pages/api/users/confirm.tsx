@@ -8,7 +8,7 @@ async function handler(
   res: NextApiResponse<ResponseType>
 ) {
   const { token } = req.body;
-  const exists = await client.token.findUnique({
+  const matchedToken = await client.token.findUnique({
     where: {
       payload: token,
     },
@@ -17,13 +17,20 @@ async function handler(
       user: true,
     },
   });
-  if (!exists) return res.status(404).end();
+  if (!matchedToken) return res.status(404).end();
   // token 인증이 된 경우 session에 저장
   req.session.user = {
-    id: exists.userId,
+    id: matchedToken.userId,
   };
   // encrypt the session
   await req.session.save();
+  // 세션 저장 후, 인증된 유저와 연결된 토큰 모두 제거
+  // 인증에 사용된 토큰을 다시 사용하지 못하게 하기 위함
+  await client.token.deleteMany({
+    where: {
+      userId: matchedToken.userId,
+    },
+  });
   res.json({
     ok: true,
   });
