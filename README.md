@@ -690,3 +690,288 @@ async function handler(
 
 export default withApiSession(withHandler('POST', handler));
 ```
+
+---
+
+### Next Auth
+
+간단한 인증은 매우 간단하게 처리가능
+
+`path: **pages/api/auth/[...nextauth].js**`
+
+```tsx
+import NextAuth from 'next-auth';
+import GithubProvider from 'next-auth/providers/github';
+
+export default NextAuth({
+  // Configure one or more authentication providers
+  providers: [
+    GithubProvider({
+      clientId: process.env.GITHUB_ID,
+      clientSecret: process.env.GITHUB_SECRET,
+    }),
+    // ...add more providers here
+  ],
+});
+```
+
+NextAuth 로 prisma db에 데이터를 저장하기 위해서 몇가지 설정 필요
+
+[https://next-auth.js.org/adapters/prisma](https://next-auth.js.org/adapters/prisma)
+
+---
+
+Protect Handler
+
+인자가 많아지면 객체 형식으로 표현해주는것이 가독성에 좋다
+
+`fn('GET', handler, true) -> fn({method:'GET', handler, isPrivate:true})`
+
+```tsx
+import { NextApiRequest, NextApiResponse } from 'next';
+
+export interface ResponseType {
+  ok: boolean;
+  [key: string]: any;
+  isPrivate?: boolean;
+}
+
+interface ConfigType {
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  handler: (req: NextApiRequest, res: NextApiResponse) => void;
+  isPrivate?: boolean;
+}
+
+export default function withHandler({
+  method,
+  isPrivate = true, // default
+  handler,
+}: ConfigType) {
+  return async function (
+    req: NextApiRequest,
+    res: NextApiResponse
+  ): Promise<any> {
+    if (req.method !== method) {
+      return res.status(405).end();
+    }
+    if (isPrivate && !req.session.user) {
+      return res
+        .status(401)
+        .json({ ok: false, error: 'You are not allowed to access.' });
+    }
+    try {
+      await handler(req, res);
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ error });
+    }
+  };
+}
+
+// NextJS는 withHandler가 Return하는것을 실행
+```
+
+```tsx
+export default withApiSession(
+  withHandler({
+    method: 'GET',
+    isPrivate: true,
+    handler,
+  })
+);
+```
+
+---
+
+useUser.ts hook
+
+```tsx
+import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
+
+export default function useUser() {
+  const router = useRouter();
+  const [user, setuser] = useState();
+  useEffect(() => {
+    fetch('/api/users/myProfile')
+      .then((response) => response.json())
+      .then((data) => {
+        if (!data.ok) return router.replace('/enter'); // push의 경우 브라우져가 history를 남김
+        setuser(data.profile);
+      });
+  }, [router]);
+  return user;
+}
+```
+
+`const user = useUser()`를 통해 각 페이지에서 사용할 수 있음
+
+하지만 매번 api 요청을 필요로 하기때문에 받아온 데이터를 캐쉬할 필요가 있음 → SWR 사용
+
+---
+
+SWR
+
+`npm i swr`
+
+VS react-query `https://goongoguma.github.io/2021/11/04/React-Query-vs-SWR/`
+
+- React Query가 더 많은 기능을 제공하지만 그만큼 더 많은 용량을 차지(3배)
+- 간단한 용도로 사용하기에는 유용하게 사용가능
+
+데이터가 변경되면 자동으로 데이터를 변경해줌
+
+(실제로 user name을 수정하자 즉각적으로 데이터를 다시 불러옴)
+
+```tsx
+import { useRouter } from 'next/router';
+import useSWR from 'swr';
+
+function fetcher(url: string) {
+  return fetch(url).then((response) => response.json());
+}
+
+export default function useUser() {
+  const url = '/api/users/myProfile';
+  const { data, error } = useSWR(url, fetcher);
+  const router = useRouter();
+
+  return data;
+}
+```
+
+SWR Config를 통해 fetcher function을 세팅할 수 있음
+
+`const { data, error } = useSWR(url)` url만 넘겨주어도 사용 가능
+
+```tsx
+import '../styles/globals.css';
+import type { AppProps } from 'next/app';
+import { SWRConfig } from 'swr';
+import { fetcher } from '@libs/client/utils';
+
+function MyApp({ Component, pageProps }: AppProps) {
+  return (
+    <SWRConfig value={{ fetcher }}>
+      <div className='w-full max-w-xl mx-auto'>
+        <Component {...pageProps} />
+      </div>
+    </SWRConfig>
+  );
+}
+
+export default MyApp;
+```
+
+code refactoring
+
+```tsx
+import { useRouter } from 'next/router';
+import { useEffect } from 'react';
+import useSWR from 'swr';
+
+export default function useUser() {
+  const url = '/api/users/myProfile';
+  const { data, error } = useSWR(url);
+  const router = useRouter();
+  useEffect(() => {
+    if (data && !data.ok) {
+      router.replace('/enter');
+    }
+  }, [data, router]);
+
+  return { user: data?.profile, isLoading: !data && !error };
+}
+```
+
+---
+
+Product Model
+
+```tsx
+model Product {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int
+  image       String   @db.Text
+  name        String
+  price       Int
+  description String   @db.MediumText
+}
+
+TINYTEXT 256 bytes 최대 255 글자
+TEXT 65,535 bytes ~64kb 최대 65535 글자
+MEDIUMTEXT 16,777,215 bytes ~16MB 최대 16777215 글자
+LONGTEXT 4,294,967,295 bytes ~4GB 최대 4294967295 글자
+```
+
+---
+
+REST API
+
+GET, POST에 따라 각각의 로직을 처리
+
+```tsx
+type method = 'GET' | 'POST' | 'PUT' | 'DELETE';
+
+interface ConfigType {
+  methods: method[];
+  handler: (req: NextApiRequest, res: NextApiResponse) => void;
+  isPrivate?: boolean;
+}
+```
+
+```tsx
+async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<ResponseType>
+) {
+  switch (req.method) {
+    case 'GET':
+      const products = await client.product.findMany({});
+      res.json({
+        ok: true,
+        products,
+      });
+      break;
+    case 'POST':
+      const {
+        body: { name, price, description },
+        session: { user },
+      } = req;
+      const product = await client.product.create({
+        data: {
+          name,
+          price: +price,
+          description,
+          image: 'imageURL',
+          user: {
+            connect: {
+              id: user?.id,
+            },
+          },
+        },
+      });
+      res.json({
+        ok: true,
+        product,
+      });
+      break;
+  }
+}
+```
+
+---
+
+useSWR data type
+
+```tsx
+interface IProductResponse {
+  ok: boolean;
+  products: Product[];
+}
+
+const { data } = useSWR<IProductResponse>(url);
+```
