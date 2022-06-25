@@ -1,16 +1,16 @@
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import useSWR from 'swr';
 
 export default function useUser() {
+  const url = '/api/users/myProfile';
+  const { data, error } = useSWR(url);
   const router = useRouter();
-  const [user, setuser] = useState();
   useEffect(() => {
-    fetch('/api/users/myProfile')
-      .then((response) => response.json())
-      .then((data) => {
-        if (!data.ok) return router.replace('/enter'); // push의 경우 브라우져가 history를 남김
-        setuser(data.profile);
-      });
-  }, [router]);
-  return user;
+    if (data && !data.ok) {
+      router.replace('/enter');
+    }
+  }, [data, router]);
+
+  return { user: data?.profile, isLoading: !data && !error };
 }
