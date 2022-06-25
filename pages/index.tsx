@@ -4,22 +4,30 @@ import Item from '@components/item';
 import Layout from '@components/layout';
 import useUser from '@libs/client/useUser';
 import Head from 'next/head';
+import useSWR from 'swr';
+import { Product } from 'prisma/prisma-client';
+
+interface IProductResponse {
+  ok: boolean;
+  products: Product[];
+}
 
 const Home: NextPage = () => {
   const { user, isLoading } = useUser();
-  console.log(user, isLoading);
+  const { data } = useSWR<IProductResponse>('/api/products');
+  console.log(data);
   return (
     <Layout title='홈' hasTabBar>
       <Head>
         <title>Home</title>
       </Head>
       <div className='flex flex-col space-y-5 divide-y'>
-        {new Array(5).fill(0).map((_, i) => (
+        {data?.products.map(({ id, name, price }) => (
           <Item
-            id={i}
-            key={i}
-            title='iPhone 14'
-            price={99}
+            id={id}
+            key={id}
+            title={name}
+            price={price}
             comments={1}
             hearts={1}
           />
