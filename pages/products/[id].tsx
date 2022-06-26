@@ -2,11 +2,12 @@ import type { NextPage } from 'next';
 import Button from '@components/button';
 import Layout from '@components/layout';
 import { useRouter } from 'next/router';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import { Fav, Product, User } from 'prisma/prisma-client';
 import Link from 'next/link';
 import useMutation from '@libs/client/useMutation';
 import { cls } from '@libs/client/utils';
+import useUser from '@libs/client/useUser';
 
 interface IProductWithUser extends Product {
   user: User;
@@ -19,18 +20,33 @@ interface IProductDetailResponse {
 }
 
 const ItemDetail: NextPage = () => {
+  const { user, isLoading } = useUser();
   const {
     query: { id },
   } = useRouter();
-  const { data, mutate } = useSWR<IProductDetailResponse>(
+  const { data, mutate: boundMutate } = useSWR<IProductDetailResponse>(
     id ? `/api/products/${id}` : null
   );
+  const { mutate: unboundMutate } = useSWRConfig();
   const [toggleFav] = useMutation(`/api/products/${id}/fav`);
   const onFavClick = () => {
     // Optimistic UI Update
-    if (!data) return;
-    // mutation의 첫번째 arg는 업데이트 될 캐쉬 데이터, 두번쨰 인자는 캐쉬 업데이트 후 백엔드에 요청을 통해 검증하는 용도로 default: true
-    mutate({ ...data, isLiked: !data?.isLiked }, false);
+    /**
+     * mutation의 첫번째 arg는 업데이트 될 캐쉬 데이터
+     * 두번쨰 인자는 캐쉬 업데이트 후 백엔드에 요청을 통해 검증하는 용도로 default: true
+     */
+    boundMutate((prev) => prev && { ...prev, isLiked: !prev?.isLiked }, false);
+    /**
+     * unbound mutation 첫번째 argㄴ는 어떤 데이터를 다룰것인지 key값 명시
+     * 두번째 인자는 업데이트 될 데이터, 함수 형태로 prev값을 가져다 사용할 수 있음
+     * 세번째 인자는 마찬가지로 백엔드 검증 요청 여부
+     * key값만 전달하는 경우 단순한 refetch를 의미함
+     */
+    // unboundMutate(
+    //   '/api/users/myProfile',
+    //   (prev: any) => ({ ok: !prev.ok }),
+    //   false
+    // );
     // Backend process
     toggleFav({});
   };
