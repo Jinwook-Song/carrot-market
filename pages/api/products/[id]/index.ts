@@ -9,6 +9,7 @@ async function handler(
 ) {
   const {
     query: { id },
+    session: { user },
   } = req;
   const product = await client.product.findUnique({
     where: {
@@ -40,9 +41,22 @@ async function handler(
     },
     take: 4,
   });
+  const isLiked = Boolean(
+    await client.fav.findFirst({
+      where: {
+        productId: product?.id,
+        userId: user?.id,
+      },
+      // Fav의 모든 데이터를 가져올 필요가 없음, 경제적으로 DB 사용
+      select: {
+        id: true,
+      },
+    })
+  );
   res.json({
     ok: true,
     product,
+    isLiked,
     relatedProducts,
   });
 }
