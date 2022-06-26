@@ -9,7 +9,11 @@ import { Product } from 'prisma/prisma-client';
 
 interface IProductResponse {
   ok: boolean;
-  products: Product[];
+  products: (Product & {
+    _count: {
+      favs: number;
+    };
+  })[];
 }
 const Home: NextPage = () => {
   const { user, isLoading } = useUser();
@@ -21,14 +25,14 @@ const Home: NextPage = () => {
         <title>Home</title>
       </Head>
       <div className='flex flex-col space-y-5 divide-y'>
-        {data?.products.map(({ id, name, price }) => (
+        {data?.products?.map(({ id, name, price, _count }) => (
           <Item
             id={id}
             key={id}
             title={name}
             price={price}
             comments={1}
-            hearts={1}
+            hearts={_count.favs}
           />
         ))}
         <FloatingButton href='/products/upload'>
