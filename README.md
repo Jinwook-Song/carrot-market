@@ -975,3 +975,188 @@ interface IProductResponse {
 
 const { data } = useSWR<IProductResponse>(url);
 ```
+
+---
+
+get Product
+
+```tsx
+async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<ResponseType>
+) {
+  const {
+    query: { id },
+  } = req;
+  const product = await client.product.findUnique({
+    where: {
+      id: +id.toString(),
+    },
+    include: {
+      user: {
+        // 필요한 데이터만 선택할 수 있음
+        select: {
+          name: true,
+          avatar: true,
+        },
+      },
+    },
+  });
+  res.json({
+    ok: true,
+    product,
+  });
+}
+```
+
+reponse interface
+
+```tsx
+interface IProductResponse {
+  ok: boolean;
+  product:
+    | (Product & {
+        user: {
+          name: string;
+          avatar: string | null;
+        };
+      })
+    | null;
+}
+```
+
+related product
+
+[`https://www.prisma.io/docs/concepts/components/prisma-client/crud#read`](https://www.prisma.io/docs/concepts/components/prisma-client/crud#read)
+
+```tsx
+const terms = product?.name.split(' ').map((word) => ({
+  name: {
+    contains: word,
+  },
+}));
+const relatedProducts = await client.product.findMany({
+  where: {
+    OR: terms,
+    AND: {
+      id: {
+        not: product?.id,
+      },
+    },
+  },
+});
+```
+
+---
+
+Favorite model
+
+```tsx
+model Fav {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+```
+
+```tsx
+const alreadyExists = await client.fav.findFirst({
+  where: {
+    productId: +id.toString(),
+    userId: user?.id,
+  },
+});
+
+if (alreadyExists) {
+  // DELETE deleteMany와는 다르게 Unique 속성으로만 삭제 가능
+  await client.fav.delete({
+    where: {
+      id: alreadyExists.id,
+    },
+  });
+} else {
+  await client.fav.create({
+    data: {
+      user: {
+        connect: { id: user?.id },
+      },
+      product: {
+        connect: {
+          id: +id.toString(),
+        },
+      },
+    },
+  });
+}
+```
+
+Optimistic UI Update
+
+: backend 처리를 기다리지 않고, 잘 처리가 될것을 기대하고 UI를 업데이트 시켜주는 것
+
+```tsx
+const onFavClick = () => {
+  // Optimistic UI Update
+  if (!data) return;
+  /**
+   * mutation의 첫번째 arg는 업데이트 될 캐쉬 데이터
+   * 두번쨰 인자는 캐쉬 업데이트 후 백엔드에 요청을 통해 검증하는 용도로 default: true
+   */
+  mutate({ ...data, isLiked: !data?.isLiked }, false);
+  // Backend process
+  toggleFav({});
+};
+```
+
+Unbound mutation
+
+```tsx
+// Optimistic UI Update
+/**
+ * mutation의 첫번째 arg는 업데이트 될 캐쉬 데이터
+ * 두번쨰 인자는 캐쉬 업데이트 후 백엔드에 요청을 통해 검증하는 용도로 default: true
+ */
+boundMutate((prev) => prev && { ...prev, isLiked: !prev?.isLiked }, false);
+/**
+ * unbound mutation 첫번째 argㄴ는 어떤 데이터를 다룰것인지 key값 명시
+ * 두번째 인자는 업데이트 될 데이터, 함수 형태로 prev값을 가져다 사용할 수 있음
+ * 세번째 인자는 마찬가지로 백엔드 검증 요청 여부
+ * key값만 전달하는 경우 단순한 refetch를 의미함
+ */
+unboundMutate('/api/users/myProfile', (prev: any) => ({ ok: !prev.ok }), false);
+```
+
+---
+
+Count relation
+
+fav 전체 데이터를 불러오는 것이 아닌 \_count 만 가져와서 사용
+
+```tsx
+const products = await client.product.findMany({
+  include: {
+    _count: {
+      select: {
+        favs: true,
+      },
+    },
+  },
+});
+```
+
+interface
+
+```tsx
+interface IProductResponse {
+  ok: boolean;
+  products: (Product & {
+    _count: {
+      favs: number;
+    };
+  })[];
+}
+```
