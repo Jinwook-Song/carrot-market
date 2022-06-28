@@ -9,6 +9,7 @@ async function handler(
 ) {
   const {
     query: { id },
+    session: { user },
   } = req;
   const post = await client.post.findUnique({
     where: {
@@ -44,11 +45,22 @@ async function handler(
     },
   });
 
+  const isWondering = Boolean(
+    await client.wondering.findFirst({
+      where: {
+        postId: +id.toString(),
+        userId: user?.id,
+      },
+      select: { id: true },
+    })
+  );
+
   // 모든 API에 대해서도 처리 해줘야함
   if (!post) res.status(404).json({ ok: false, error: 'Post not found.' });
   res.json({
     ok: true,
     post,
+    isWondering,
   });
 }
 
