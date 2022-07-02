@@ -10,12 +10,25 @@ async function handler(
   const {
     body: { question, latitude, longitude },
     session: { user },
+    query: { latitude: currLatitude, longitude: currLongitude },
     method,
   } = req;
 
   switch (method) {
     case 'GET':
+      const parsedLatitude = parseFloat(currLatitude.toString());
+      const parsedLongitude = parseFloat(currLongitude.toString());
       const posts = await client.post.findMany({
+        where: {
+          latitude: {
+            gte: parsedLatitude - 0.01,
+            lte: parsedLatitude + 0.01,
+          },
+          longitude: {
+            gte: parsedLongitude - 0.01,
+            lte: parsedLongitude + 0.01,
+          },
+        },
         include: {
           user: {
             select: {
