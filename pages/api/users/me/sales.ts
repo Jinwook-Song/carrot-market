@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import withHandler, { ResponseType } from '@libs/server/withHandler';
 import client from '@libs/server/client';
 import { withApiSession } from '@libs/server/withSession';
+import favs from './favs';
 
 async function handler(
   req: NextApiRequest,
@@ -15,7 +16,15 @@ async function handler(
       userId: user?.id,
     },
     include: {
-      product: true,
+      product: {
+        include: {
+          _count: {
+            select: {
+              favs: true,
+            },
+          },
+        },
+      },
     },
   });
 

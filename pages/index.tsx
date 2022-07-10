@@ -31,7 +31,6 @@ const Home: NextPage = () => {
             key={id}
             title={name}
             price={price}
-            comments={1}
             hearts={_count.favs}
           />
         ))}
