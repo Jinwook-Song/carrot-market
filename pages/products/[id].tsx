@@ -43,7 +43,7 @@ const ItemDetail: NextPage = () => {
      * key값만 전달하는 경우 단순한 refetch를 의미함
      */
     // unboundMutate(
-    //   '/api/users/myProfile',
+    //   '/api/users/me',
     //   (prev: any) => ({ ok: !prev.ok }),
     //   false
     // );

@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import useSWR from 'swr';
 
 export default function useUser() {
-  const url = '/api/users/myProfile';
+  const url = '/api/users/me';
   const { data, error } = useSWR(url);
   const router = useRouter();
   useEffect(() => {
