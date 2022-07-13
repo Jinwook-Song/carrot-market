@@ -9,10 +9,13 @@ interface IResponseUser {
   error: any;
 }
 
-export default function useUser() {
-  const url = '/api/users/me';
-  const { data, error } = useSWR<IResponseUser>(url);
+export default function useUser(pathname?: string) {
   const router = useRouter();
+  const url = '/api/users/me';
+  const { data, error } = useSWR<IResponseUser>(
+    pathname === '/enter' ? null : url
+  );
+
   useEffect(() => {
     if (data && !data.ok) {
       router.replace('/enter');
