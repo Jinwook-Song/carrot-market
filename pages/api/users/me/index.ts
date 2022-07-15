@@ -7,20 +7,112 @@ async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseType>
 ) {
-  const profile = await client.user.findUnique({
-    where: {
-      id: req.session.user?.id,
-    },
-  });
-  res.json({
-    ok: true,
-    profile,
-  });
+  const method = req.method;
+  switch (method) {
+    case 'GET':
+      const profile = await client.user.findUnique({
+        where: {
+          id: req.session.user?.id,
+        },
+      });
+      res.json({
+        ok: true,
+        profile,
+      });
+      break;
+    case 'POST':
+      const {
+        session: { user },
+        body: { name, email, phone },
+      } = req;
+
+      const currentUser = await client.user.findUnique({
+        where: {
+          id: user?.id,
+        },
+      });
+
+      if (email && email !== currentUser?.email) {
+        const aleadyExist = Boolean(
+          await client.user.findUnique({
+            where: {
+              email,
+            },
+            select: {
+              id: true,
+            },
+          })
+        );
+        if (aleadyExist) {
+          res.json({
+            ok: false,
+            error: 'Email address already in use.',
+          });
+        } else {
+          await client.user.update({
+            where: {
+              id: user?.id,
+            },
+            data: {
+              email,
+            },
+          });
+          res.json({
+            ok: true,
+          });
+        }
+      } else if (phone && phone !== currentUser?.phone) {
+        const aleadyExist = Boolean(
+          await client.user.findUnique({
+            where: {
+              phone,
+            },
+            select: {
+              id: true,
+            },
+          })
+        );
+        if (aleadyExist) {
+          res.json({
+            ok: false,
+            error: 'Phone number already in use.',
+          });
+        } else {
+          await client.user.update({
+            where: {
+              id: user?.id,
+            },
+            data: {
+              phone,
+            },
+          });
+          res.json({
+            ok: true,
+          });
+        }
+      }
+
+      if (name) {
+        await client.user.update({
+          where: {
+            id: user?.id,
+          },
+          data: {
+            name,
+          },
+        });
+        res.json({
+          ok: true,
+        });
+      }
+
+      break;
+  }
 }
 
 export default withApiSession(
   withHandler({
-    methods: ['GET'],
+    methods: ['GET', 'POST'],
     isPrivate: true,
     handler,
   })

@@ -3,12 +3,77 @@ import Button from '@components/button';
 import Input from '@components/input';
 import Layout from '@components/layout';
 import useUser from '@libs/client/useUser';
+import { useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { EMAIL_VALIDATION_CHECK } from '@libs/client/utils';
+import useMutation from '@libs/client/useMutation';
+import { useRouter } from 'next/router';
+
+interface IEditProfileForm {
+  name?: string;
+  email?: string;
+  phone?: string;
+  formErrors?: string;
+}
+
+interface IEditProfileResponse {
+  ok: boolean;
+  error?: string;
+}
 
 const EditProfile: NextPage = () => {
+  const router = useRouter();
   const { user } = useUser();
+  const [isEmailLogin, setIsEmailLogin] = useState(true);
+
+  const {
+    register,
+    setValue,
+    handleSubmit,
+    getValues,
+    setError,
+    formState: { errors },
+    clearErrors,
+  } = useForm<IEditProfileForm>();
+
+  useEffect(() => {
+    if (user?.email) {
+      setValue('email', user.email);
+      setIsEmailLogin(true);
+    }
+    if (user?.phone) {
+      setValue('phone', user.phone);
+      setIsEmailLogin(false);
+    }
+    if (user?.name) {
+      setValue('name', user.name);
+    }
+  }, [user, setValue]);
+
+  const [updateProfile, { data, loading }] =
+    useMutation<IEditProfileResponse>('/api/users/me');
+
+  const onValid = () => {
+    if (loading) return;
+    const { name, email, phone } = getValues();
+    updateProfile({ name, email, phone });
+  };
+
+  useEffect(() => {
+    if (data && !data.ok && data.error) {
+      setError('formErrors', { message: data.error });
+      setInterval(() => {
+        clearErrors();
+      }, 5000);
+    }
+    if (data && data.ok) {
+      router.replace(`/profile`);
+    }
+  }, [data, setError, router, clearErrors]);
+
   return (
     <Layout canGoBack title='Edit Profile'>
-      <form className='py-10 px-4 space-y-4'>
+      <form onSubmit={handleSubmit(onValid)} className='py-10 px-4 space-y-4'>
         <div className='flex items-center space-x-3'>
           <div className='w-14 h-14 rounded-full bg-slate-500' />
           <label
@@ -24,15 +89,61 @@ const EditProfile: NextPage = () => {
             />
           </label>
         </div>
-        <Input required label='Email address' name='email' type='email' />
         <Input
+          register={register('name', {
+            required: 'Name is required.',
+          })}
           required
-          label='Phone number'
-          name='phone'
-          type='number'
-          kind='phone'
+          label='Name'
+          name='name'
+          type='text'
         />
-        <Button text='Update profile' />
+        {isEmailLogin ? (
+          <Input
+            register={register('email', {
+              required: 'Email is required.',
+              pattern: {
+                value: EMAIL_VALIDATION_CHECK,
+                message: 'Please enter a valid email.',
+              },
+            })}
+            required
+            label='Email address'
+            name='email'
+            type='email'
+          />
+        ) : (
+          <Input
+            register={register('phone', {
+              required: 'Phone number is required.',
+            })}
+            required
+            label='Phone number'
+            name='phone'
+            type='text'
+            kind='phone'
+          />
+        )}
+
+        {errors.name ? (
+          <span className='my-2 text-red-500 font-medium text-center block'>
+            {errors.name.message}
+          </span>
+        ) : errors.email ? (
+          <span className='my-2 text-red-500 font-medium text-center block'>
+            {errors.email.message}
+          </span>
+        ) : errors.phone ? (
+          <span className='my-2 text-red-500 font-medium text-center block'>
+            {errors.phone.message}
+          </span>
+        ) : errors.formErrors ? (
+          <span className='my-2 text-red-500 font-medium text-center block'>
+            {errors.formErrors.message}
+          </span>
+        ) : null}
+
+        <Button text={loading ? 'Loading...' : 'Update profile'} />
       </form>
     </Layout>
   );
