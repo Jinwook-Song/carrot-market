@@ -4,17 +4,79 @@ import Message from '@components/message';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import { Stream } from 'prisma/prisma-client';
+import { useForm } from 'react-hook-form';
+import useMutation from '@libs/client/useMutation';
+import useUser from '@libs/client/useUser';
+import { useEffect, useRef } from 'react';
 
 interface IStreamResponse {
   ok: boolean;
-  stream: Stream;
+  stream: Stream & {
+    messages: {
+      id: number;
+      user: {
+        id: number;
+        avatar: string | null;
+      };
+      message: string;
+    }[];
+  };
+}
+
+interface IMessageForm {
+  message: string;
 }
 
 const Stream: NextPage = () => {
+  const { user: currentUser } = useUser();
   const { query } = useRouter();
-  const { data } = useSWR<IStreamResponse>(
-    query.id ? `/api/streams/${query.id}` : null
+  const { data, mutate } = useSWR<IStreamResponse>(
+    query.id ? `/api/streams/${query.id}` : null,
+    {
+      refreshInterval: 1000,
+    }
   );
+
+  const [sendMessage, { data: sendMessagedata, loading }] = useMutation(
+    `/api/streams/${query.id}/messages`
+  );
+
+  const { register, handleSubmit, getValues, reset } = useForm<IMessageForm>();
+
+  const onValid = () => {
+    if (loading) return;
+    mutate(
+      (prev) =>
+        prev && {
+          ...prev,
+          stream: {
+            ...prev.stream,
+            messages: [
+              ...prev.stream.messages,
+              {
+                id: prev.stream.messages.length + 2,
+                message: getValues('message'),
+                user: {
+                  id: currentUser?.id!,
+                  avatar: currentUser?.avatar!,
+                },
+              },
+            ],
+          },
+        },
+      false
+    );
+    sendMessage(getValues());
+    reset();
+  };
+
+  // Scroll Into View
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    console.log('asdf');
+    scrollRef?.current?.scrollIntoView();
+  });
+
   return (
     <Layout canGoBack>
       <div className='py-10 px-4  space-y-4'>
@@ -31,13 +93,22 @@ const Stream: NextPage = () => {
         <div>
           <h2 className='text-2xl font-bold text-gray-900'>Live Chat</h2>
           <div className='py-10 pb-16 h-[50vh] overflow-y-scroll  px-4 space-y-4'>
-            <Message message='Hi how much are you selling them for?' />
-            <Message message='I want ￦20,000' reversed />
-            <Message message='미쳤어' />
+            {data?.stream.messages.map((message) => (
+              <Message
+                key={message.id}
+                message={message.message}
+                reversed={message.user.id === currentUser?.id}
+              />
+            ))}
+            <div ref={scrollRef} />
           </div>
           <div className='fixed py-2 bg-white  bottom-0 inset-x-0'>
-            <div className='flex relative max-w-md items-center  w-full mx-auto'>
+            <form
+              onSubmit={handleSubmit(onValid)}
+              className='flex relative max-w-md items-center  w-full mx-auto'
+            >
               <input
+                {...register('message', { required: true })}
                 type='text'
                 className='shadow-sm rounded-full w-full border-gray-300 focus:ring-orange-500 focus:outline-none pr-12 focus:border-orange-500'
               />
@@ -46,7 +117,7 @@ const Stream: NextPage = () => {
                   &rarr;
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       </div>
