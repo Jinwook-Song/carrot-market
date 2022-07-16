@@ -2,6 +2,7 @@ import { PrismaClient } from 'prisma/prisma-client';
 
 const client = new PrismaClient();
 
+// fake(test) data
 async function main() {
   new Array(200).fill(0).forEach(async (_, idx) => {
     await client.stream.create({

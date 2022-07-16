@@ -9,10 +9,19 @@ async function handler(
 ) {
   switch (req.method) {
     case 'GET':
-      const streams = await client.stream.findMany({});
+      const contentsPerPage = 5;
+      const {
+        query: { page },
+      } = req;
+      const streamCount = await client.stream.count();
+      const streams = await client.stream.findMany({
+        take: contentsPerPage,
+        skip: (+page - 1) * contentsPerPage,
+      });
       res.json({
         ok: true,
         streams,
+        pages: Math.ceil(streamCount / contentsPerPage),
       });
       break;
 

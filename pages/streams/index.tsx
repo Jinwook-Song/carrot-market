@@ -3,19 +3,34 @@ import Link from 'next/link';
 import FloatingButton from '@components/floating-button';
 import Layout from '@components/layout';
 import { Stream } from 'prisma/prisma-client';
-import useSWR from 'swr';
+import useSWRInfinite from 'swr/infinite';
+import { useInfiniteScroll } from '@libs/client/useInfinityScroll';
+import { useEffect } from 'react';
+import { fetcher } from '@libs/client/utils';
 
 interface IStreamsResponse {
   ok: boolean;
   streams: Stream[];
+  pages: number;
 }
 
+const getKey = (pageIndex: number, previousPageData: IStreamsResponse) => {
+  if (pageIndex === 0) return `/api/streams?page=1`;
+  if (pageIndex + 1 > previousPageData.pages) return null;
+  return `/api/streams?page=${pageIndex + 1}`;
+};
+
 const Streams: NextPage = () => {
-  const { data } = useSWR<IStreamsResponse>('/api/streams');
+  const { data, setSize } = useSWRInfinite<IStreamsResponse>(getKey, fetcher);
+  const streams = data ? data.map((item) => item.streams).flat() : [];
+  const page = useInfiniteScroll();
+  useEffect(() => {
+    setSize(page);
+  }, [setSize, page]);
   return (
     <Layout hasTabBar title='라이브'>
       <div className=' divide-y-[1px] space-y-4'>
-        {data?.streams.map((stream) => (
+        {streams.map((stream) => (
           <Link key={stream.id} href={`/streams/${stream.id}`}>
             <a className='pt-4 block  px-4'>
               <div className='w-full rounded-md shadow-sm bg-slate-300 aspect-video' />
