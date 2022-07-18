@@ -47,9 +47,12 @@ const EditProfile: NextPage = () => {
       setValue('phone', user.phone);
       setIsEmailLogin(false);
     }
-    if (user?.name) {
-      setValue('name', user.name);
-    }
+    if (user?.name) setValue('name', user.name);
+
+    if (user?.name)
+      setPreviewAvatar(
+        `https://imagedelivery.net/0yNBnB1j4b45loBWzdicYQ/${user?.avatar}/public`
+      );
   }, [user, setValue]);
 
   const [updateProfile, { data, loading }] =
@@ -60,15 +63,18 @@ const EditProfile: NextPage = () => {
     const { name, email, phone, avatar } = getValues();
 
     if (avatar && avatar.length > 0 && user) {
-      const { id, uploadURL } = await (await fetch('/api/files')).json();
+      const { uploadURL } = await (await fetch('/api/files')).json();
       const form = new FormData();
       form.append('file', avatar[0], String(user?.id));
-      await fetch(uploadURL, {
-        method: 'POST',
-        body: form,
-      });
-
-      return;
+      const {
+        result: { id: avatarId },
+      } = await (
+        await fetch(uploadURL, {
+          method: 'POST',
+          body: form,
+        })
+      ).json();
+      updateProfile({ name, email, phone, avatarId });
     } else {
       updateProfile({ name, email, phone });
     }
