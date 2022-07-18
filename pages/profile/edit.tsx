@@ -55,9 +55,23 @@ const EditProfile: NextPage = () => {
   const [updateProfile, { data, loading }] =
     useMutation<IEditProfileResponse>('/api/users/me');
 
-  const onValid = () => {
-    console.log(getValues('avatar'));
-    return;
+  const onValid = async () => {
+    if (loading) return;
+    const { name, email, phone, avatar } = getValues();
+
+    if (avatar && avatar.length > 0 && user) {
+      const { id, uploadURL } = await (await fetch('/api/files')).json();
+      const form = new FormData();
+      form.append('file', avatar[0], String(user?.id));
+      await fetch(uploadURL, {
+        method: 'POST',
+        body: form,
+      });
+
+      return;
+    } else {
+      updateProfile({ name, email, phone });
+    }
   };
 
   useEffect(() => {
