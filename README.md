@@ -1044,6 +1044,7 @@ const relatedProducts = await client.product.findMany({
       },
     },
   },
+  take: 4,
 });
 ```
 
@@ -1159,4 +1160,370 @@ interface IProductResponse {
     };
   })[];
 }
+```
+
+---
+
+useCoords hook
+
+```tsx
+import { useEffect, useState } from 'react';
+
+type ICoordsState = {
+  latitude: number | null;
+  longitude: number | null;
+};
+
+export default function useCoords() {
+  const [coords, setCoords] = useState<ICoordsState>({
+    latitude: null,
+    longitude: null,
+  });
+
+  function onSuccess({ coords: { latitude, longitude } }: GeolocationPosition) {
+    setCoords({ latitude, longitude });
+  }
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(onSuccess);
+  }, []);
+  return coords;
+}
+```
+
+---
+
+```tsx
+// 중복되는 형태의 모델을 Enum과 Kind를 통해 하나의 모델로 처리
+model Record {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  kind      Kind
+}
+
+enum Kind {
+  Purchase
+  Sale
+  Fav
+}
+```
+
+하나의 모델을 두 번 이상 참조하는 하는 경우
+
+name을 통해 relation을 명시
+
+```tsx
+model User {
+  id              Int         @id @default(autoincrement())
+  phone           String?     @unique
+  email           String?     @unique
+  name            String
+  avatar          String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  writtenReviews  Review[]    @relation("writtenReviews")
+  receivedReviews Review[]    @relation("receivedReviews")
+
+}
+
+model Review {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    User     @relation(name: "writtenReviews", fields: [createdById], references: [id], onDelete: Cascade)
+  createdById  Int
+  createdFor   User     @relation(name: "receivedReviews", fields: [createdForId], references: [id], onDelete: Cascade)
+  createdForId Int
+}
+```
+
+데이터베이스가 이미 존재하는 모델의 schema를 변경하고자 할때
+
+1. 기존 데이터 베이스를 지운 후 생성
+2. 새로 추가되는 필드를 옵셔널하게 생성
+3. default value를 입력하여 기존 데이터에도 추가되도록 설정
+
+---
+
+Star Score
+
+```tsx
+{
+  new Array(5).fill(0).map((_, idx) => (
+    <svg
+      key={idx}
+      className={cls(
+        'h-5 w-5',
+        review.score > idx ? 'text-yellow-400' : 'text-gray-400'
+      )}
+      xmlns='http://www.w3.org/2000/svg'
+      viewBox='0 0 20 20'
+      fill='currentColor'
+      aria-hidden='true'
+    >
+      <path d='M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z' />
+    </svg>
+  ));
+}
+```
+
+---
+
+useUser hook 전역사용 (enter page 제외) → middleware의 역할을 함
+
+\_app.tsx 에서 사용해주면 된다.
+
+```tsx
+_app.tsx;
+
+function MyApp({ Component, pageProps }: AppProps) {
+  const { pathname } = useRouter();
+  useUser(pathname);
+
+  return (
+    <SWRConfig value={{ fetcher }}>
+      <div className='w-full max-w-xl mx-auto'>
+        <Component {...pageProps} />
+      </div>
+    </SWRConfig>
+  );
+}
+
+export default MyApp;
+
+useUser.ts;
+export default function useUser(pathname?: string) {
+  const router = useRouter();
+  const url = '/api/users/me';
+  const { data, error } = useSWR<IResponseUser>(
+    pathname === '/enter' ? null : url
+  );
+
+  useEffect(() => {
+    if (data && !data.ok) {
+      router.replace('/enter');
+    }
+  }, [data, router]);
+
+  return { user: data?.profile, isLoading: !data && !error };
+}
+```
+
+---
+
+메시지 생성 등으로 아래에 element가 생길 때, 해당 위치로 스크롤을 변경
+
+```tsx
+// Scroll Into View
+const scrollRef = useRef<HTMLDivElement>(null);
+useEffect(() => {
+  scrollRef?.current?.scrollIntoView();
+});
+
+<div ref={scrollRef} />;
+```
+
+---
+
+SWR refreshInterval 설정
+
+```tsx
+const { data, mutate } = useSWR<IStreamResponse>(
+  query.id ? `/api/streams/${query.id}` : null,
+  {
+    refreshInterval: 1000,
+  }
+);
+```
+
+---
+
+Prisma Seed
+
+Seeding database
+
+시딩을 사용하면 데이터베이스에서 동일한 데이터를 일관되게 다시 생성할 수 있으며 다음을 수행\
+
+1. 애플리케이션을 시작하는 데 필요한 데이터(예: 기본 언어 또는 기본 통화)
+
+2. 개발 환경에서 애플리케이션을 검증하고 사용하기 위한 기본 데이터
+
+```tsx
+import { PrismaClient } from 'prisma/prisma-client';
+
+const client = new PrismaClient();
+
+async function main() {
+  new Array(200).fill(0).forEach(async (_, idx) => {
+    await client.stream.create({
+      data: {
+        name: String(idx),
+        description: String(idx),
+        price: idx,
+        user: {
+          connect: {
+            id: 10,
+          },
+        },
+      },
+    });
+    console.log(`${idx}/200`);
+  });
+}
+
+main()
+  .catch((e) => console.log(e))
+  .finally(() => client.$disconnect());
+```
+
+package.json
+
+```tsx
+"prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+  }
+```
+
+`npx prisma db seed` 로 실행
+
+혹은 tsconfig.json
+
+```tsx
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@libs/*": ["libs/*"],
+      "@components/*": ["components/*"]
+    }
+  },
+  "ts-node": {
+    "compilerOptions": {
+      "module": "CommonJS"
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
+}
+```
+
+---
+
+Infinity scroll
+
+useInfinityScroll.ts
+
+```tsx
+import { useEffect, useState } from 'react';
+
+export function useInfiniteScroll() {
+  const [page, setPage] = useState(1);
+  function handleScroll() {
+    if (
+      document.documentElement.scrollTop + window.innerHeight >=
+      document.documentElement.scrollHeight
+    ) {
+      setPage((p) => p + 1);
+    }
+  }
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+  return page;
+}
+```
+
+intex.tsx (front)
+
+```tsx
+const getKey = (pageIndex: number, previousPageData: IStreamsResponse) => {
+  if (pageIndex === 0) return `/api/streams?page=1`;
+  if (pageIndex + 1 > previousPageData.pages) return null;
+  return `/api/streams?page=${pageIndex + 1}`;
+};
+
+const { data, setSize } = useSWRInfinite<IStreamsResponse>(getKey, fetcher);
+const streams = data ? data.map((item) => item.streams).flat() : [];
+const page = useInfiniteScroll();
+useEffect(() => {
+  setSize(page);
+}, [setSize, page]);
+```
+
+index.ts (backend)
+
+```tsx
+const contentsPerPage = 5;
+const {
+  query: { page },
+} = req;
+const streamCount = await client.stream.count();
+const streams = await client.stream.findMany({
+  take: contentsPerPage,
+  skip: (+page - 1) * contentsPerPage,
+});
+res.json({
+  ok: true,
+  streams,
+  pages: Math.ceil(streamCount / contentsPerPage),
+});
+```
+
+---
+
+Image handling
+
+input으로부터 받은 파일은 브라우져가 캐쉬하여 사용할 수 있음
+
+```tsx
+const avatar = watch('avatar');
+useEffect(() => {
+  if (avatar && avatar.length > 0) {
+    // 유저가 파일을 선택하게 되면 브라우저의 메모리에 캐쉬된다.
+    const file = avatar[0];
+    setPreviewAvatar(URL.createObjectURL(file));
+  }
+}, [avatar]);
+```
+
+---
+
+Cloudflare image upload
+
+```
+general method
+1. File(browser) ---> Api Server ---> CloudFlare Server
+
+direct creator upload (DCU)
+2. File() ---> CloudFlare Server
+
+DCU concepts
+
+1. Client wants to upload ---> Api Server notice CF(with Api key)
+2. CF send empty file URL ---> Api Server transport URL ---> Client
+3. Client ---> Upload with URL directly
+
+--> backend에 데이터를 넘기지 않고 client가 직접 업로드면서도 Api key를 노출 시키지 않음
 ```

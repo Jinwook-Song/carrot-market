@@ -73,7 +73,6 @@ const Stream: NextPage = () => {
   // Scroll Into View
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    console.log('asdf');
     scrollRef?.current?.scrollIntoView();
   });
 

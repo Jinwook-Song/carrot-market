@@ -10,6 +10,7 @@ import useMutation from '@libs/client/useMutation';
 import { useRouter } from 'next/router';
 
 interface IEditProfileForm {
+  avatar?: FileList;
   name?: string;
   email?: string;
   phone?: string;
@@ -32,6 +33,7 @@ const EditProfile: NextPage = () => {
     handleSubmit,
     getValues,
     setError,
+    watch,
     formState: { errors },
     clearErrors,
   } = useForm<IEditProfileForm>();
@@ -54,9 +56,8 @@ const EditProfile: NextPage = () => {
     useMutation<IEditProfileResponse>('/api/users/me');
 
   const onValid = () => {
-    if (loading) return;
-    const { name, email, phone } = getValues();
-    updateProfile({ name, email, phone });
+    console.log(getValues('avatar'));
+    return;
   };
 
   useEffect(() => {
@@ -71,17 +72,31 @@ const EditProfile: NextPage = () => {
     }
   }, [data, setError, router, clearErrors]);
 
+  const [previewAvatar, setPreviewAvatar] = useState<string>();
+  const avatar = watch('avatar');
+  useEffect(() => {
+    if (avatar && avatar.length > 0) {
+      // 유저가 파일을 선택하게 되면 브라우저의 메모리에 캐쉬된다.
+      const file = avatar[0];
+      setPreviewAvatar(URL.createObjectURL(file));
+    }
+  }, [avatar]);
+
   return (
     <Layout canGoBack title='Edit Profile'>
       <form onSubmit={handleSubmit(onValid)} className='py-10 px-4 space-y-4'>
         <div className='flex items-center space-x-3'>
-          <div className='w-14 h-14 rounded-full bg-slate-500' />
+          <img
+            src={previewAvatar}
+            className='w-14 h-14 rounded-full bg-slate-500'
+          />
           <label
             htmlFor='picture'
             className='cursor-pointer py-2 px-3 border hover:bg-gray-50 border-gray-300 rounded-md shadow-sm text-sm font-medium focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 text-gray-700'
           >
             Change
             <input
+              {...register('avatar')}
               id='picture'
               type='file'
               className='hidden'
