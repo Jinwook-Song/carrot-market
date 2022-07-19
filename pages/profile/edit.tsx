@@ -51,7 +51,7 @@ const EditProfile: NextPage = () => {
 
     if (user?.name)
       setPreviewAvatar(
-        `https://imagedelivery.net/0yNBnB1j4b45loBWzdicYQ/${user?.avatar}/public`
+        `https://imagedelivery.net/0yNBnB1j4b45loBWzdicYQ/${user?.avatar}/avatar`
       );
   }, [user, setValue]);
 

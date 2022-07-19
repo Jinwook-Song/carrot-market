@@ -25,7 +25,7 @@ async function handler(
       break;
     case 'POST':
       const {
-        body: { name, price, description },
+        body: { name, price, description, photoId },
         session: { user },
       } = req;
       const product = await client.product.create({
@@ -33,7 +33,7 @@ async function handler(
           name,
           price: +price,
           description,
-          image: 'imageURL',
+          image: photoId,
           user: {
             connect: {
               id: user?.id,
