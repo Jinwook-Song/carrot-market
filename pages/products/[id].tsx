@@ -8,6 +8,7 @@ import Link from 'next/link';
 import useMutation from '@libs/client/useMutation';
 import { cls } from '@libs/client/utils';
 import useUser from '@libs/client/useUser';
+import Image from 'next/image';
 
 interface IProductWithUser extends Product {
   user: User;
@@ -54,14 +55,22 @@ const ItemDetail: NextPage = () => {
     <Layout canGoBack>
       <div className='px-4  py-4'>
         <div className='mb-8'>
-          <img
-            src={`https://imagedelivery.net/0yNBnB1j4b45loBWzdicYQ/${data?.product.image}/public`}
-            className='h-96 bg-slate-300'
-          />
+          <div className='relative py-40'>
+            <Image
+              layout='fill'
+              src={`https://imagedelivery.net/0yNBnB1j4b45loBWzdicYQ/${data?.product.image}/public`}
+              className='bg-slate-300 object-cover'
+              alt={data?.product.name}
+            />
+          </div>
+
           <div className='flex cursor-pointer py-3 border-t border-b items-center space-x-3'>
-            <img
+            <Image
+              width={48}
+              height={48}
               src={`https://imagedelivery.net/0yNBnB1j4b45loBWzdicYQ/${data?.product.user.avatar}/avatar`}
               className='w-12 h-12 rounded-full bg-slate-300'
+              alt={data?.product.user.name}
             />
             <div>
               <p className='text-sm font-medium text-gray-700'>

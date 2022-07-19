@@ -6,6 +6,7 @@ import useUser from '@libs/client/useUser';
 import Head from 'next/head';
 import useSWR from 'swr';
 import { Product, User } from 'prisma/prisma-client';
+import Image from 'next/image';
 
 interface IProductResponse {
   ok: boolean;
