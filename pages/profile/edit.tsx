@@ -107,8 +107,11 @@ const EditProfile: NextPage = () => {
       <form onSubmit={handleSubmit(onValid)} className='py-10 px-4 space-y-4'>
         <div className='flex items-center space-x-3'>
           <Image
-            src={previewAvatar}
+            width={56}
+            height={56}
+            src={previewAvatar ?? ''}
             className='w-14 h-14 rounded-full bg-slate-500'
+            alt='preview avatar'
           />
           <label
             htmlFor='picture'
