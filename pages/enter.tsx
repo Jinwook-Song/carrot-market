@@ -1,5 +1,5 @@
 import type { NextPage } from 'next';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Button from '@components/button';
 import Input from '@components/input';
@@ -7,6 +7,17 @@ import useMutation from '@libs/client/useMutation';
 import { cls } from '@libs/client/utils';
 import { ResponseType } from '@libs/server/withHandler';
 import { useRouter } from 'next/router';
+import dynamic from 'next/dynamic';
+import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
+
+const DynamicComponent = dynamic(
+  () =>
+    new Promise((resolve) =>
+      setTimeout(() => resolve(import('@components/dynamicComponent')), 3000)
+    ),
+  { ssr: false, suspense: true, loading: () => <span>loading from next</span> }
+);
 
 interface IEnterForm {
   email?: string;
@@ -113,14 +124,30 @@ const Enter: NextPage = () => {
                 />
               ) : null}
               {method === 'phone' ? (
-                <Input
-                  register={register('phone')}
-                  name='phone'
-                  label='Phone number'
-                  type='number'
-                  kind='phone'
-                  required
-                />
+                <>
+                  <Suspense
+                    fallback={
+                      <SkeletonTheme
+                        baseColor='#ff9100'
+                        highlightColor='#24201e'
+                      >
+                        <p>
+                          <Skeleton />
+                        </p>
+                      </SkeletonTheme>
+                    }
+                  >
+                    <DynamicComponent />
+                  </Suspense>
+                  <Input
+                    register={register('phone')}
+                    name='phone'
+                    label='Phone number'
+                    type='number'
+                    kind='phone'
+                    required
+                  />
+                </>
               ) : null}
               {method === 'email' ? (
                 <Button text={loading ? 'Loading...' : 'Get login link'} />
