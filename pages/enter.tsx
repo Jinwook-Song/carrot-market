@@ -12,6 +12,7 @@ import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 
 const DynamicComponent = dynamic(
+  // @ts-ignore
   () =>
     new Promise((resolve) =>
       setTimeout(() => resolve(import('@components/dynamicComponent')), 3000)
