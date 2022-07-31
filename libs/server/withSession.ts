@@ -1,4 +1,4 @@
-import { withIronSessionApiRoute } from 'iron-session/next';
+import { withIronSessionApiRoute, withIronSessionSsr } from 'iron-session/next';
 
 // iron session에 sesstion type 정의
 declare module 'iron-session' {
@@ -20,4 +20,8 @@ const cookieOptions = {
 
 export function withApiSession(fn: any) {
   return withIronSessionApiRoute(fn, cookieOptions);
+}
+
+export function withSsrSession(handler: any) {
+  return withIronSessionSsr(handler, cookieOptions);
 }
