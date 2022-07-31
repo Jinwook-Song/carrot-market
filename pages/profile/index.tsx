@@ -1,4 +1,4 @@
-import type { NextPage, NextPageContext } from 'next';
+import type { GetServerSideProps, NextPage, NextPageContext } from 'next';
 import Link from 'next/link';
 import Layout from '@components/layout';
 import useUser from '@libs/client/useUser';
@@ -164,17 +164,17 @@ const Page: NextPage<{ profile: User }> = ({ profile }) => {
   );
 };
 
-export const getServerSideProps = withSsrSession(async function ({
-  req,
-}: NextPageContext) {
-  const profile = await client.user.findUnique({
-    where: { id: req?.session.user?.id }, // withSsrSession으로부터 값을 받음
-  });
-  return {
-    props: {
-      profile: JSON.parse(JSON.stringify(profile)),
-    },
-  };
-});
+export const getServerSideProps: GetServerSideProps = withSsrSession(
+  async function ({ req }: NextPageContext) {
+    const profile = await client.user.findUnique({
+      where: { id: req?.session.user?.id }, // withSsrSession으로부터 값을 받음
+    });
+    return {
+      props: {
+        profile: JSON.parse(JSON.stringify(profile)),
+      },
+    };
+  }
+);
 
 export default Page;

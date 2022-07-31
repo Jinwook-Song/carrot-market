@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.blog-post-content h1 {
+  @apply text-red-500 text-lg font-medium;
+}
+
+.blog-post-content p {
+  @apply text-gray-500;
+}
+
+.blog-post-content ul {
+  @apply w-full pt-10 flex flex-col justify-start;
+}
+
+.blog-post-content li {
+  @apply list-disc;
+}
