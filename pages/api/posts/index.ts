@@ -16,8 +16,8 @@ async function handler(
 
   switch (method) {
     case 'GET':
-      const parsedLatitude = parseFloat(currLatitude.toString());
-      const parsedLongitude = parseFloat(currLongitude.toString());
+      const parsedLatitude = parseFloat(currLatitude?.toString()!);
+      const parsedLongitude = parseFloat(currLongitude?.toString()!);
       const posts = await client.post.findMany({
         where: {
           latitude: {
@@ -64,6 +64,8 @@ async function handler(
           },
         },
       });
+
+      await res.revalidate('/community');
 
       res.json({
         ok: true,

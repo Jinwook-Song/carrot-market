@@ -1087,7 +1087,7 @@ if (alreadyExists) {
       },
       product: {
         connect: {
-          id: +id.toString(),
+          id: +id?.toString()!,
         },
       },
     },

@@ -23,7 +23,7 @@ async function handler(
       },
       stream: {
         connect: {
-          id: +id.toString(),
+          id: +id?.toString()!,
         },
       },
     },

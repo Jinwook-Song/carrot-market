@@ -15,7 +15,7 @@ async function handler(
 
   const post = await client.post.findFirst({
     where: {
-      id: +id.toString(),
+      id: +id?.toString()!,
     },
     select: {
       id: true,
@@ -32,7 +32,7 @@ async function handler(
       },
       post: {
         connect: {
-          id: +id.toString(),
+          id: +id?.toString()!,
         },
       },
       answer,
