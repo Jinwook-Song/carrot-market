@@ -1087,7 +1087,7 @@ if (alreadyExists) {
       },
       product: {
         connect: {
-          id: +id?.toString()!,
+          id: +id.toString(),
         },
       },
     },
@@ -1526,4 +1526,446 @@ DCU concepts
 3. Client ---> Upload with URL directly
 
 --> backend에 데이터를 넘기지 않고 client가 직접 업로드면서도 Api key를 노출 시키지 않음
+```
+
+[DOCs](https://developers.cloudflare.com/images/cloudflare-images/upload-images/direct-creator-upload/)
+
+files.ts
+
+```tsx
+const reponse = await(
+  await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${process.env.CF_ACCOUNT_ID}/images/v2/direct_upload`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.CF_TOKEN}`,
+      },
+    }
+  )
+).json();
+```
+
+response의 형태는 다음과 같음
+
+이때 id는 백엔드에 저장, uploadURL을 통해 CF에 업로드
+
+```tsx
+{
+  result: {
+    id: 'f6fe9989-8fab-4ef0-16fe-faa2cbfb8100',
+    uploadURL: 'https://upload.imagedelivery.net/0yNBnB1j4b45loBWzdicYQ/f6fe9989-8fab-4ef0-16fe-faa2cbfb8100'
+  },
+  result_info: null,
+  success: true,
+  errors: [],
+  messages: []
+}
+```
+
+CF Image variants
+
+https://developers.cloudflare.com/images/cloudflare-images/resize-images/
+
+```tsx
+Resize images
+
+Cloudflare 이미지는 다양한 사용을 고려하여 이미지 크기를 조정하는 방법을 지정하는 variants을 지원합니다. 최대 20개의 variants을 구성할 수 있습니다.
+
+각 variants에는 크기가 조정된 이미지의 너비와 높이를 포함한 속성이 있습니다.
+
+Scale down
+
+이미지는 주어진 너비 또는 높이에 완전히 맞도록 크기가 축소되지만 확대되지는 않습니다.
+
+Contain
+
+이미지는 가로 세로 비율을 유지하면서 주어진 너비 또는 높이 내에서 가능한 한 크게 크기 조정(축소 또는 확대)됩니다.
+
+Cover
+
+너비와 높이로 지정된 전체 영역을 정확히 채우도록 이미지 크기가 조정되고 필요한 경우 잘립니다.
+
+Crop
+
+너비와 높이로 지정된 영역에 맞게 이미지가 축소되고 잘립니다.
+
+```
+
+---
+
+Next Image
+
+nextjs는 유저가 해당 영역으로 스크롤을 내렸을때 이미지를 다운 받는다
+
+또한 lazy loading을 통해 완전히 다운받기 전까지 blur처리된 이미지를 보여준다 (local image의 경우)
+
+아래와 같이 사용 가능하다. 이미지의 퀄리티는 0~100
+
+```tsx
+<Image src={test} placeholder='blur' quality={10} />
+```
+
+remote의 경우
+
+next.config.json에 해당 서버의 도메인을 등록시킨다
+
+```tsx
+module.exports = {
+  reactStrictMode: true,
+  images: {
+    domains: ['imagedelivery.net'],
+  },
+};
+```
+
+```tsx
+<Image width={64} height={64} src={test} />
+```
+
+로컬 이미지와는 다르게 크기를 지정해 주어야 함, 크기를 지정할 수 없을때는 layout=’fill’ 이 유일한 옵션
+
+```tsx
+<div className='relative py-40'>
+  <Image
+    layout='fill'
+    src={`https://imagedelivery.net/0yNBnB1j4b45loBWzdicYQ/${data?.product.image}/public`}
+    className='bg-slate-300 object-cover'
+  />
+</div>
+```
+
+이미지는 최대 크기를 갖게 되고, position: absolute 상태이다. 따라서 parent container를 감싸고 그 크기를 조절하는 방식이 좋다. 또한 이미지는 object-fill 속성을 이용하여 적합한 형태를 사용할 수 있다.
+
+blurDataURL (remote image blur 적용)
+
+```tsx
+src 이미지가 성공적으로 로드되기 전에 placeholder 이미지로 사용할 데이터 URL입니다. placeholder="blur"와 결합된 경우에만 적용됩니다. base64로 인코딩된 이미지여야 합니다. 확대되어 흐려지므로 아주 작은 이미지(10px 이하)를 권장합니다. 더 큰 이미지를 placeholder로 포함하면 애플리케이션 성능이 저하될 수 있습니다.
+
+https://nextjs.org/docs/api-reference/next/image#blurdataurl
+
+Remote 이미지에 블러 적용하기
+
+placeholder를 blur로 지정하면 blurDataURL이 placeholder로 사용됩니다.
+
+<Image
+alt=""
+src={`이미지 URL`}
+placeholder="blur"
+blurDataURL="https://i.ibb.co/ByhpsFY/blur.png"
+/>
+
+PNG Pixel
+투명 BASE64 PNG 픽셀 생성기
+https://png-pixel.com/
+```
+
+---
+
+Dynamic import
+
+```tsx
+Dynamic Import
+
+Next.js는 JavaScript용 ES2020 Dynamic import()를 지원합니다. 이를 통해 JavaScript 모듈을 동적으로 가져와서 작업할 수 있습니다. 또한 SSR과 함께 작동합니다. dynamic()은 React.lazy와 유사하게 사전 로드가 작동하도록 모듈의 최상위에 표시되어야 하므로 React 렌더링 내부에서 사용할 수 없습니다.
+ex) 사용자가 검색을 입력한 후에만 브라우저에서 모듈을 동적으로 로드합니다.
+```
+
+import dynamic from 'next/dynamic'
+
+const DynamicComponent = dynamic(() => import('../components/hello'))
+
+< div>
+< DynamicComponent />
+< /div>
+
+```
+https://nextjs.org/docs/advanced-features/dynamic-import
+
+With custom loading component
+Dynamic Component가 로드되는 동안 로드 상태를 렌더링하기 위해 선택적 로딩 컴포넌트를 추가할 수 있습니다.
+https://nextjs.org/docs/advanced-features/dynamic-import#with-custom-loading-component
+```
+
+With custom loading component
+
+dynamic 컴포넌트가 로드되는 동안 로드 상태를 렌더링하기 위해 선택적으로 로딩 컴포넌트를 추가할 수 있습니다.
+
+```tsx
+const DynamicComponent = dynamic(
+  () =>
+    new Promise((resolve) =>
+      setTimeout(() => resolve(import('@components/dynamicComponent')), 3000)
+    ),
+  { ssr: false, suspense: true, loading: () => <span>loading from next</span> }
+);
+```
+
+With no SSR
+
+항상 server side에 모듈을 포함하고 싶지는 않을 수 있습니다. 예를 들어 모듈에 브라우저에서만 작동하는 라이브러리가 포함된 경우에는 ssr: false를 통해 CSR으로 실행합니다.
+
+With suspense
+
+suspense를 사용하면 React.lazy 및 React 18의 Suspense와 유사한 컴포넌트를 지연 로드(lazy-load)할 수 있습니다. fallback이 있는 클라이언트 측 또는 서버 측에서만 작동합니다.
+
+동시 모드에서 완전한 SSR 지원은 아직 진행 중입니다.
+
+```tsx
+const DynamicLazyComponent = dynamic(() => import('../components/hello4'), {
+
+suspense: true,
+
+})
+
+<Suspense fallback={`loading`}>
+
+<DynamicLazyComponent />
+
+</Suspense>
+```
+
+https://nextjs.org/docs/advanced-features/dynamic-import#with-custom-loading-component
+
+---
+
+\_document.tsx
+
+app component와의 차이는 app component는 user가 페이지를 불러올때마다 브라우져에서 실행됨
+
+document component는 서버에서 한번만 실행되고
+
+`Html, Head, Main, NextScript`가 필수 요소이다.
+
+(따라서 onclick과 같은 event를 실행시킬 수 없음)
+
+document의 역할을 NextJs Html의 뼈대 역할을 함
+
+Main Component 에서는 App component를 렌더링 한다
+
+font 최적화
+
+구글 폰트에 한해서 Nextjs 앱 빌드시 폰트를 미리 다운받도록 해준다.
+
+script
+
+```tsx
+Script Component
+
+Next.js Script 컴포넌트인 next/script는 HTML script 태그의 확장입니다.
+이를 통해 개발자는 애플리케이션에서 써드 파티 스크립트의 로드되는 우선 순위를 설정할 수 있으므로 개발자 시간을 절약하면서 로드하는 성능을 향상시킬 수 있습니다.
+
+beforeInteractive: 페이지가 interactive 되기 전에 로드
+afterInteractive: (기본값) 페이지가 interactive 된 후에 로드
+lazyOnload: 다른 모든 데이터나 소스를 불러온 후에 로드
+worker: (실험적인) web worker에 로드
+```
+
+---
+
+getServerSideProps
+
+서버에서 미리 데이터를 fetch하여 props로 건내준다.
+
+prisma client를 사용할 수 있는데 이때, prisma의 date 타입을 이해하지 못하기 때문에
+
+`products: JSON.parse(JSON.stringify(products))` 같은 처리가 필요하다.
+
+getServerSideProps는 페이지가 렌더될때마다 실행되며 캐시 데이터를 사용할 수 없다.
+
+```tsx
+const Home: NextPage<{
+  products: ProductsType[];
+}> = ({ products }) => {};
+```
+
+```tsx
+export async function getServerSideProps() {
+  const products = await client?.product.findMany({});
+  console.log(products);
+  return {
+    props: {
+      products: JSON.parse(JSON.stringify(products)),
+    },
+  };
+}
+```
+
+SSR + SWR
+
+```tsx
+const Page: NextPage<{ products: ProductWithCount[] }> = ({ products }) => {
+  return (
+    <SWRConfig
+      value={{
+        fallback: {
+          '/api/products': {
+            ok: true,
+            products,
+          },
+        },
+      }}
+    >
+      <Home />
+    </SWRConfig>
+  );
+};
+```
+
+처음 렌더링 될때 SWR의 캐쉬는 비어있다.
+
+그 빈곳을 ServerSideProps를 통해 채워주고, Home을 렌더링하게되면 CSR, SSR의 이점을 모두 갖는다
+
+---
+
+SSR + Auth
+
+withSession.ts
+
+```tsx
+export function withSsrSession(handler: any) {
+  return withIronSessionSsr(handler, cookieOptions);
+}
+```
+
+```tsx
+export const getServerSideProps = withSsrSession(async function ({
+  req,
+}: NextPageContext) {
+  const profile = await client.user.findUnique({
+    where: { id: req?.session.user?.id }, // withSsrSession으로부터 값을 받음
+  });
+  return {
+    props: {
+      profile: JSON.parse(JSON.stringify(profile)),
+    },
+  };
+});
+```
+
+---
+
+getStaticProps
+
+getStaticProps는 항상 서버에서 실행되고 클라이언트에서는 실행되지 않습니다. getStaticProps는 정적 HTML을 생성하므로 들어오는 request(예: 쿼리 매개변수 또는 HTTP 헤더)에 액세스할 수 없습니다. getStaticProps가 있는 페이지가 빌드 시 미리 렌더링되면 페이지 HTML 파일 외에도 Next.js가 getStaticProps 실행 결과를 포함하는 JSON 파일을 생성합니다.
+
+https://nextjs.org/docs/basic-features/data-fetching/get-static-props
+
+```tsx
+export async function getStaticProps() {
+  const blogPosts = readdirSync('./posts').map((file) => {
+    const content = readFileSync(`./posts/${file}`, 'utf-8');
+    return matter(content).data;
+  });
+  return {
+    props: {
+      posts: blogPosts.reverse(),
+    },
+  };
+}
+
+export default Blog;
+```
+
+getStaticPath
+
+동적인 url을 사용하는곳에서 getStaticProps를 사용할때 필요하다
+
+```tsx
+import { readdirSync } from 'fs';
+import { NextPage } from 'next';
+
+const Post: NextPage = () => {
+  return <div>hi</div>;
+};
+
+export function getStaticPaths() {
+  const files = readdirSync('./posts').map((file) => {
+    const [name, _] = file.split('.');
+    return { params: { slug: name } };
+  });
+  console.log(files);
+  return {
+    paths: files,
+    fallback: false,
+  };
+}
+
+export function getStaticProps() {
+  return {
+    props: {},
+  };
+}
+
+export default Post;
+```
+
+언제 getStaticPath를 사용해야 합니까?
+
+동적 경로를 사용하는 페이지를 정적으로 pre-rendering하는 경우 getStaticPaths를 사용해야 합니다.
+
+- 데이터를 헤드리스 CMS에서 가져올 때
+- 데이터를 데이터베이스에서 가져올 때
+- 데이터를 파일 시스템에서 가져올 때
+- 데이터를 공개적으로 캐시할 수 있을 때
+- 페이지는 SEO를 위해 pre-rendering되어야 하고 매우 빨라야 할 때
+
+getStaticProps는 성능을 위해 CDN에서 캐시할 수 있는 HTML 및 JSON 파일을 생성합니다.
+
+https://nextjs.org/docs/basic-features/data-fetching/get-static-paths#when-should-i-use-getstaticpaths
+
+getStaticPaths는 언제 실행됩니까?
+
+getStaticPaths는 프로덕션 환경에서 빌드하는 동안에만 실행되며 런타임에는 호출되지 않습니다.
+
+https://nextjs.org/docs/basic-features/data-fetching/get-static-paths#when-does-getstaticpaths-run
+
+---
+
+```tsx
+미들웨어 (_middleware 사용)
+중간에 request를 가로챔
+
+Server (getInitialProps 또는 getServerSideProps 사용)
+런타임 시 서버 사이드 렌더링
+
+Static (초기 props를 사용하지 않음)
+static HTML로 자동으로 렌더링됨
+
+SSG (getStaticProps 사용)
+static HTML + JSON으로 자동으로 생성됨
+```
+
+---
+
+Incremental static regeration (ISR)
+
+```tsx
+Incremental Static Regeneration
+빌드 타임때, pre-render된 페이지에 대한 요청이 이루어지면 처음에는 캐시된 페이지가 표시됩니다.
+1. 초기 요청 후 10초 이전에 페이지에 오는 모든 요청은 캐시되고, 즉각적으로 보여줍니다.
+2. 10초 후 다음 요청은 여전히 캐시된 페이지를 표시합니다.
+3. Next.js는 백그라운드에서 페이지 regeneration을 트리거합니다.
+4. 페이지가 성공적으로 생성되면 Next.js는 캐시를 무효화하고 업데이트된 페이지를 표시합니다. 백그라운드 regeneration이 실패하면 이전 페이지는 여전히 변경되지 않습니다.
+https://nextjs.org/docs/basic-features/data-fetching/incremental-static-regeneration
+
+On-demand Revalidation (Beta)
+revalidate 시간을 60으로 설정하면 모든 방문자는 1분 동안 동일한 버전의 사이트를 보게 됩니다. 캐시를 무효화하는 유일한 방법은 1분이 지난 후 누군가가 해당 페이지를 방문하는 것입니다.
+Next.js v12.1.0부터 on-demand Incremental Static Regeneration을 지원하여 특정 페이지의 Next.js 캐시를 수동으로 제거할 수 있습니다. 이렇게 하면 사이트를 수동으로 업데이트할 수 있습니다.
+https://nextjs.org/docs/basic-features/data-fetching/incremental-static-regeneration#on-demand-revalidation-beta
+```
+
+---
+
+getStaticPath , fallback
+
+```tsx
+fallback: 'blocking'
+
+fallback이 'blocking'인 경우 getStaticPaths에서 반환되지 않은 새 경로는 SSR과 동일하게 HTML이 생성될 때까지 기다렸다가 이후 요청을 위해 캐시되어 path당 한 번만 발생합니다. fallback: 'blocking'은 기본적으로 생성된 페이지를 업데이트하지 않습니다. 생성된 페이지를 업데이트하려면 fallback: blocking과 함께 ISR을 사용하십시오.
+
+https://nextjs.org/docs/api-reference/data-fetching/get-static-paths#fallback-blocking
+
+await new Promise((resolve) => setTimeout(resolve, 5000));
 ```
