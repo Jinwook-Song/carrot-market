@@ -1969,3 +1969,29 @@ https://nextjs.org/docs/api-reference/data-fetching/get-static-paths#fallback-bl
 
 await new Promise((resolve) => setTimeout(resolve, 5000));
 ```
+
+```tsx
+fallback: false
+fallback이 false인 경우 getStaticPaths에서 반환하지 않은 모든 경로는 404 페이지가 됩니다. next build가 실행되면 Next.js는 getStaticPaths가 fallback: false를 반환했는지 확인한 다음 getStaticPaths가 반환한 경로만 빌드합니다. 이 옵션은 생성할 경로가 적거나 새 페이지 데이터가 자주 추가되지 않는 경우에 유용합니다.
+
+fallback: true
+fallback이 true인 경우, 빌드 시 생성되지 않은 경로는 404 페이지를 생성하지 않습니다. 대신 Next.js는 이러한 경로에 대한 첫 번째 요청에서 페이지의 "fallback" 버전(isFallback)을 제공합니다. Google과 같은 웹 크롤러는 fallback 서비스를 제공하지 않으며 대신 경로는 fallback: 'blocking'과 같이 작동합니다. 백그라운드에서 Next.js는 요청된 경로 HTML 및 JSON을 정적으로 생성합니다.
+
+fallback: true가 언제 유용합니까?
+fallback: true는 데이터에 의존하는 static 페이지가 많은 경우에 유용합니다(예: 매우 큰 전자 상거래 사이트). 모든 제품 페이지를 미리 렌더링하려면 빌드 시간이 매우 오래 걸립니다.
+
+Fallback pages
+router를 사용하여 fallback이 렌더링되고 있는지 감지할 수 있습니다. fallback이 렌더링되고 있다면 router.isFallback은 true가 됩니다.
+```
+
+// 페이지가 아직 생성되지 않은 경우 getStaticProps() 실행이 완료될 때까지 아래 로딩이 표시됩니다.
+if (router.isFallback) {
+return < div>Loading...< /div>
+}
+
+```
+https://nextjs.org/docs/api-reference/data-fetching/get-static-paths#fallback-pages
+
+fallback: blocking
+getStaticProps나 getStaticPaths를 가지고 있는 페이지에 방문할 때, 만약 그 페이지에 해당하는 HTML 파일이 없다면, fallback: blocking은 유저를 잠시동안 기다리게 만들고, 그동안 백그라운드에서 페이지를 만들어서 유저에게 넘겨줍니다.
+```

@@ -28,6 +28,7 @@ const ItemDetail: NextPage<IProductDetailResponse> = ({
 }) => {
   const { user, isLoading } = useUser();
   const {
+    isFallback,
     query: { id },
   } = useRouter();
   const { data, mutate: boundMutate } = useSWR<IProductDetailResponse>(
@@ -56,6 +57,14 @@ const ItemDetail: NextPage<IProductDetailResponse> = ({
     // Backend process
     toggleFav({});
   };
+
+  if (isFallback) {
+    return (
+      <Layout title='Loaidng for youuuuuuu'>
+        <span>I love you</span>
+      </Layout>
+    );
+  }
   return (
     <Layout canGoBack>
       <div className='px-4  py-4'>
@@ -165,7 +174,7 @@ const ItemDetail: NextPage<IProductDetailResponse> = ({
 export const getStaticPaths: GetStaticPaths = () => {
   return {
     paths: [],
-    fallback: 'blocking',
+    fallback: true,
   };
 };
 
