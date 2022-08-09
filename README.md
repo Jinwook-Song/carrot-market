@@ -1995,3 +1995,135 @@ https://nextjs.org/docs/api-reference/data-fetching/get-static-paths#fallback-pa
 fallback: blocking
 getStaticProps나 getStaticPaths를 가지고 있는 페이지에 방문할 때, 만약 그 페이지에 해당하는 HTML 파일이 없다면, fallback: blocking은 유저를 잠시동안 기다리게 만들고, 그동안 백그라운드에서 페이지를 만들어서 유저에게 넘겨줍니다.
 ```
+
+---
+
+## React 18
+
+### Suspense + SWR
+
+SWR을 사용하는 컴포넌트를 분리하여 사용할 수 있다
+
+Suspense의 장점은 loading state를 분리하여 데이터가 있다고 생각하고 작업이 가능하다
+
+또한 여러개의 Suspense를 사용할 수 있다.
+
+Suspense는 각 라이브러리에서 지원하는 방식으로 사용해야 한다.
+
+SWR의 경우
+
+```tsx
+const Page: NextPage = () => {
+  return (
+    <SWRConfig
+      value={{
+        suspense: true,
+        // fallback: {
+        //   '/api/users/me': { ok: true, profile },
+        // },
+      }}
+    >
+      <Profile />
+    </SWRConfig>
+  );
+};
+```
+
+```tsx
+const Reviews: NextPage = () => {
+  const { data } = useSWR<IReviewsResponse>('/api/reviews');
+  return (
+    <>
+      {data?.reviews.map((review) => (
+        <div key={review.id} className='mt-12'>
+          <div className='flex space-x-4 items-center'>
+            <div className='w-12 h-12 rounded-full bg-slate-500' />
+            <div>
+              <h4 className='text-sm font-bold text-gray-800'>
+                {review.createdBy.name}
+              </h4>
+              <div className='flex items-center'>
+                {new Array(5).fill(0).map((_, idx) => (
+                  <svg
+                    key={idx}
+                    className={cls(
+                      'h-5 w-5',
+                      review.score > idx ? 'text-yellow-400' : 'text-gray-400'
+                    )}
+                    xmlns='http://www.w3.org/2000/svg'
+                    viewBox='0 0 20 20'
+                    fill='currentColor'
+                    aria-hidden='true'
+                  >
+                    <path d='M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z' />
+                  </svg>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className='mt-4 text-gray-600 text-sm'>
+            <p>{review.review}</p>
+          </div>
+        </div>
+      ))}
+    </>
+  );
+};
+
+const MiniProfile: NextPage = () => {
+  const { user, isLoading } = useUser();
+  return (
+    <div className='flex items-center mt-4 space-x-3'>
+      {user?.avatar ? (
+        <Image
+          width={64}
+          height={64}
+          src={`https://imagedelivery.net/0yNBnB1j4b45loBWzdicYQ/${user?.avatar}/avatar`}
+          className='w-16 h-16 bg-slate-500 rounded-full'
+          alt={user?.name}
+        />
+      ) : (
+        <div className='w-16 h-16 bg-slate-500 rounded-full' />
+      )}
+
+      <div className='flex flex-col'>
+        <span className='font-medium text-gray-900'>{user?.name}</span>
+        <Link href='/profile/edit'>
+          <a className='text-sm text-gray-700'>Edit profile &rarr;</a>
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+const Profile: NextPage = () => {
+  return (
+    <Layout hasTabBar title='나의 캐럿'>
+      <Suspense fallback='Loading profile...'>
+        <MiniProfile />
+      </Suspense>
+
+      <Suspense fallback='Loading reviews...'>
+        <Reviews />
+      </Suspense>
+    </Layout>
+  );
+};
+
+const Page: NextPage = () => {
+  return (
+    <SWRConfig
+      value={{
+        suspense: true,
+        // fallback: {
+        //   '/api/users/me': { ok: true, profile },
+        // },
+      }}
+    >
+      <Profile />
+    </SWRConfig>
+  );
+};
+
+export default Page;
+```
