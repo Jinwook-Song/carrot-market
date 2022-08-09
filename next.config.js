@@ -4,4 +4,8 @@ module.exports = {
   images: {
     domains: ['imagedelivery.net'],
   },
+  experimental: {
+    runtime: 'nodejs',
+    serverComponents: true,
+  },
 };
