@@ -9,6 +9,8 @@
 
 ## tsConfig.json
 
+---
+
 ```jsx
 {
   "compilerOptions": {
@@ -36,8 +38,6 @@
   "exclude": ["node_modules"]
 }
 ```
-
----
 
 ## Prisma
 
@@ -2029,101 +2029,245 @@ const Page: NextPage = () => {
 };
 ```
 
-```tsx
-const Reviews: NextPage = () => {
-  const { data } = useSWR<IReviewsResponse>('/api/reviews');
-  return (
-    <>
-      {data?.reviews.map((review) => (
-        <div key={review.id} className='mt-12'>
-          <div className='flex space-x-4 items-center'>
-            <div className='w-12 h-12 rounded-full bg-slate-500' />
-            <div>
-              <h4 className='text-sm font-bold text-gray-800'>
-                {review.createdBy.name}
-              </h4>
-              <div className='flex items-center'>
-                {new Array(5).fill(0).map((_, idx) => (
-                  <svg
-                    key={idx}
-                    className={cls(
-                      'h-5 w-5',
-                      review.score > idx ? 'text-yellow-400' : 'text-gray-400'
-                    )}
-                    xmlns='http://www.w3.org/2000/svg'
-                    viewBox='0 0 20 20'
-                    fill='currentColor'
-                    aria-hidden='true'
-                  >
-                    <path d='M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z' />
-                  </svg>
-                ))}
+- 여러개의 SWR
+  ```tsx
+  const Reviews: NextPage = () => {
+    const { data } = useSWR<IReviewsResponse>('/api/reviews');
+    return (
+      <>
+        {data?.reviews.map((review) => (
+          <div key={review.id} className='mt-12'>
+            <div className='flex space-x-4 items-center'>
+              <div className='w-12 h-12 rounded-full bg-slate-500' />
+              <div>
+                <h4 className='text-sm font-bold text-gray-800'>
+                  {review.createdBy.name}
+                </h4>
+                <div className='flex items-center'>
+                  {new Array(5).fill(0).map((_, idx) => (
+                    <svg
+                      key={idx}
+                      className={cls(
+                        'h-5 w-5',
+                        review.score > idx ? 'text-yellow-400' : 'text-gray-400'
+                      )}
+                      xmlns='http://www.w3.org/2000/svg'
+                      viewBox='0 0 20 20'
+                      fill='currentColor'
+                      aria-hidden='true'
+                    >
+                      <path d='M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z' />
+                    </svg>
+                  ))}
+                </div>
               </div>
             </div>
+            <div className='mt-4 text-gray-600 text-sm'>
+              <p>{review.review}</p>
+            </div>
           </div>
-          <div className='mt-4 text-gray-600 text-sm'>
-            <p>{review.review}</p>
-          </div>
+        ))}
+      </>
+    );
+  };
+
+  const MiniProfile: NextPage = () => {
+    const { user, isLoading } = useUser();
+    return (
+      <div className='flex items-center mt-4 space-x-3'>
+        {user?.avatar ? (
+          <Image
+            width={64}
+            height={64}
+            src={`https://imagedelivery.net/0yNBnB1j4b45loBWzdicYQ/${user?.avatar}/avatar`}
+            className='w-16 h-16 bg-slate-500 rounded-full'
+            alt={user?.name}
+          />
+        ) : (
+          <div className='w-16 h-16 bg-slate-500 rounded-full' />
+        )}
+
+        <div className='flex flex-col'>
+          <span className='font-medium text-gray-900'>{user?.name}</span>
+          <Link href='/profile/edit'>
+            <a className='text-sm text-gray-700'>Edit profile &rarr;</a>
+          </Link>
         </div>
-      ))}
-    </>
-  );
-};
-
-const MiniProfile: NextPage = () => {
-  const { user, isLoading } = useUser();
-  return (
-    <div className='flex items-center mt-4 space-x-3'>
-      {user?.avatar ? (
-        <Image
-          width={64}
-          height={64}
-          src={`https://imagedelivery.net/0yNBnB1j4b45loBWzdicYQ/${user?.avatar}/avatar`}
-          className='w-16 h-16 bg-slate-500 rounded-full'
-          alt={user?.name}
-        />
-      ) : (
-        <div className='w-16 h-16 bg-slate-500 rounded-full' />
-      )}
-
-      <div className='flex flex-col'>
-        <span className='font-medium text-gray-900'>{user?.name}</span>
-        <Link href='/profile/edit'>
-          <a className='text-sm text-gray-700'>Edit profile &rarr;</a>
-        </Link>
       </div>
+    );
+  };
+
+  const Profile: NextPage = () => {
+    return (
+      <Layout hasTabBar title='나의 캐럿'>
+        <Suspense fallback='Loading profile...'>
+          <MiniProfile />
+        </Suspense>
+
+        <Suspense fallback='Loading reviews...'>
+          <Reviews />
+        </Suspense>
+      </Layout>
+    );
+  };
+
+  const Page: NextPage = () => {
+    return (
+      <SWRConfig
+        value={{
+          suspense: true,
+          // fallback: {
+          //   '/api/users/me': { ok: true, profile },
+          // },
+        }}
+      >
+        <Profile />
+      </SWRConfig>
+    );
+  };
+
+  export default Page;
+  ```
+
+---
+
+### Server Component
+
+서버 컴포넌트는 서버사이드 렌더링과 다르다.
+
+말그대로 서버에서 동작하는 컴포넌트로, 페이지에 접근했을때 모든 클라이언트 컴포넌트를 볼 수 있다.
+
+서버 컴포넌트 렌더링이 끝나면 http stream를 통해 클라이언트로 렌더링된 컴포넌트 결과를 보내준다.
+
+coins.server.tsx
+
+```tsx
+import { Suspense } from 'react';
+
+let finished = false;
+function List() {
+  if (!finished) {
+    throw Promise.all([
+      new Promise((resolve) => setTimeout(resolve, 5000)),
+      new Promise((resolve) => {
+        finished = true;
+        resolve('');
+      }),
+    ]);
+  }
+  return <ul>xxxxx</ul>;
+}
+
+export default function Coins() {
+  return (
+    <div>
+      <h1>Welcome to RSC</h1>
+      <Suspense fallback='Rendering in the server...'>
+        <List />
+      </Suspense>
     </div>
   );
-};
+}
+```
 
-const Profile: NextPage = () => {
+외부 API
+
+```tsx
+import { Suspense } from 'react';
+
+const cache: any = {};
+function fetchData(url: string) {
+  if (!cache[url]) {
+    throw fetch(url)
+      .then((r) => r.json())
+      .then((json) => (cache[url] = json.slice(0, 50)));
+  }
+  return cache[url];
+}
+
+function List() {
+  const coins = fetchData('https://api.coinpaprika.com/v1/coins');
+  console.log(coins);
   return (
-    <Layout hasTabBar title='나의 캐럿'>
-      <Suspense fallback='Loading profile...'>
-        <MiniProfile />
-      </Suspense>
-
-      <Suspense fallback='Loading reviews...'>
-        <Reviews />
-      </Suspense>
-    </Layout>
+    <ul>
+      {coins.map((coin: any) => (
+        <li key={coin.id}>
+          {coin.name} / {coin.symbol}
+        </li>
+      ))}
+    </ul>
   );
-};
+}
 
-const Page: NextPage = () => {
+export default function Coins() {
   return (
-    <SWRConfig
-      value={{
-        suspense: true,
-        // fallback: {
-        //   '/api/users/me': { ok: true, profile },
-        // },
-      }}
-    >
-      <Profile />
-    </SWRConfig>
+    <div>
+      <h1>Welcome to RSC</h1>
+      <Suspense fallback='Rendering in the server...'>
+        <List />
+      </Suspense>
+    </div>
   );
-};
+}
+```
 
-export default Page;
+```tsx
+import { Suspense } from 'react';
+
+const cache: any = {};
+function fetchData(url: string) {
+  if (!cache[url]) {
+    throw Promise.all([
+      fetch(url)
+        .then((r) => r.json())
+        .then((json) => (cache[url] = json)),
+      new Promise((resolve) =>
+        setTimeout(resolve, Math.round(Math.random() * 10555))
+      ),
+    ]);
+  }
+  return cache[url];
+}
+
+function Coin({ id, name, symbol }: any) {
+  const {
+    quotes: {
+      USD: { price },
+    },
+  } = fetchData(`https://api.coinpaprika.com/v1/tickers/${id}`);
+  return (
+    <span>
+      {name} / {symbol}: ${price}
+    </span>
+  );
+}
+
+function List() {
+  const coins = fetchData('https://api.coinpaprika.com/v1/coins');
+  return (
+    <div>
+      <h4>List is done</h4>
+      <ul>
+        {coins.slice(0, 10).map((coin: any) => (
+          <li key={coin.id}>
+            <Suspense fallback={`Coin ${coin.name} is loading`}>
+              <Coin {...coin} />
+            </Suspense>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default function Coins() {
+  return (
+    <div>
+      <h1>Welcome to RSC</h1>
+      <Suspense fallback='Rendering in the server...'>
+        <List />
+      </Suspense>
+    </div>
+  );
+}
 ```
