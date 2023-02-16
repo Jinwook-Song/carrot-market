@@ -5,7 +5,7 @@ module.exports = {
     domains: ['imagedelivery.net'],
   },
   experimental: {
-    runtime: 'nodejs',
-    serverComponents: true,
+    // runtime: 'nodejs',
+    // serverComponents: true,
   },
 };

@@ -2030,6 +2030,7 @@ const Page: NextPage = () => {
 ```
 
 - 여러개의 SWR
+
   ```tsx
   const Reviews: NextPage = () => {
     const { data } = useSWR<IReviewsResponse>('/api/reviews');
@@ -2271,3 +2272,17 @@ export default function Coins() {
   );
 }
 ```
+
+## Deploy
+
+### production branch
+
+![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/a7b719a6-3beb-4eb2-84ac-8ffb505e3015/Untitled.png)
+
+new branch (indexes)
+
+`pscale connect carrot-market indexes`
+
+db 변경을 main branch에 직접 변경하는 대신 indexes branch에 반영한다.
+
+실 사용중인 db 보호, 준비가 되면 main branch에 merge하여 변경사항을 반영한다 (git과 유사)
