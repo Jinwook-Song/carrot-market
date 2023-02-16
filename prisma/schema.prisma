@@ -42,6 +42,8 @@ model Token {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Product {
@@ -58,6 +60,8 @@ model Product {
   favs        Fav[]
   salse       Sale[]
   purchases   Purchase[]
+
+  @@index([userId])
 }
 
 model Post {
@@ -71,6 +75,8 @@ model Post {
   question  String      @db.MediumText
   answers   Answer[]
   wondering Wondering[]
+
+  @@index([userId])
 }
 
 model Answer {
@@ -82,6 +88,9 @@ model Answer {
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    Int
   answer    String   @db.MediumText
+
+  @@index([userId])
+  @@index([postId])
 }
 
 model Wondering {
@@ -92,6 +101,9 @@ model Wondering {
   userId    Int
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    Int
+
+  @@index([userId])
+  @@index([postId])
 }
 
 model Review {
@@ -104,6 +116,9 @@ model Review {
   createdById  Int
   createdFor   User     @relation(name: "receivedReviews", fields: [createdForId], references: [id], onDelete: Cascade)
   createdForId Int
+
+  @@index([createdById])
+  @@index([createdForId])
 }
 
 model Fav {
@@ -114,6 +129,9 @@ model Fav {
   productId Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([productId])
 }
 
 model Sale {
@@ -124,6 +142,9 @@ model Sale {
   productId Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([productId])
 }
 
 model Purchase {
@@ -134,6 +155,9 @@ model Purchase {
   productId Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([productId])
 }
 
 // 중복되는 형태의 모델을 Enum과 Kind를 통해 하나의 모델로 처리
@@ -146,6 +170,9 @@ model Record {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   kind      Kind
+
+  @@index([userId])
+  @@index([productId])
 }
 
 enum Kind {
@@ -164,6 +191,8 @@ model Stream {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      Int
   messages    Message[]
+
+  @@index([userId])
 }
 
 model Message {
@@ -175,4 +204,7 @@ model Message {
   message   String   @db.MediumText
   stream    Stream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
   streamId  Int
+
+  @@index([userId])
+  @@index([streamId])
 }

@@ -2286,3 +2286,17 @@ new branch (indexes)
 db 변경을 main branch에 직접 변경하는 대신 indexes branch에 반영한다.
 
 실 사용중인 db 보호, 준비가 되면 main branch에 merge하여 변경사항을 반영한다 (git과 유사)
+
+### new branch (indexes)
+
+`pscale connect carrot-market indexes`
+
+db 변경을 main branch에 직접 변경하는 대신 indexes branch에 반영한다.
+
+실 사용중인 db 보호, 준비가 되면 main branch에 merge하여 변경사항을 반영한다 (git과 유사)
+
+### @@index([])
+
+PlanetScale에서 foreign key로 구현되지 않기 때문에, column에 automatic index가 없다.
+
+따라서 메뉴얼하게 index를 생성해주어야 한다
