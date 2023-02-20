@@ -1,9 +1,10 @@
 # Carrot Market
 
-| 프로젝트 기간 | 22.06.04 ~         |
-| ------------- | ------------------ |
-| 프로젝트 목적 | NextJS, Serverless |
-| Github        | ‣                  |
+| 프로젝트 기간 | 22.06.04 ~                                    |
+| ------------- | --------------------------------------------- |
+| 프로젝트 목적 | NextJS, Serverless                            |
+| Github        | https://github.com/Jinwook-Song/carrot-market |
+| Deploy        | https://carrot-market-rose.vercel.app/        |
 
 ---
 
