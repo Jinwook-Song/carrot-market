@@ -11,7 +11,7 @@ interface IResponseUser {
 
 export default function useUser(pathname?: string) {
   const router = useRouter();
-  const url = typeof window === undefined ? null : '/api/users/me';
+  const url = typeof window === 'undefined' ? null : '/api/users/me';
   const { data, error } = useSWR<IResponseUser>(
     pathname?.includes('/enter') ? null : url
   );

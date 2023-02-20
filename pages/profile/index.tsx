@@ -19,7 +19,7 @@ interface IReviewsResponse {
 
 const Reviews: NextPage = () => {
   const { data } = useSWR<IReviewsResponse>(
-    typeof window === undefined ? null : '/api/reviews'
+    typeof window === 'undefined' ? null : '/api/reviews'
   );
   return (
     <>
