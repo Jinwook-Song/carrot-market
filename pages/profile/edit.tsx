@@ -109,7 +109,7 @@ const EditProfile: NextPage = () => {
           <Image
             width={56}
             height={56}
-            src={previewAvatar ?? ''}
+            src={previewAvatar ?? '/ruby.jpeg'}
             className='w-14 h-14 rounded-full bg-slate-500'
             alt='preview avatar'
           />
