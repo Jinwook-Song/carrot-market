@@ -3,9 +3,7 @@ export function cls(...classnames: string[]) {
 }
 
 export function fetcher(url: string) {
-  return fetch(`http://localhost:3000${url}`).then((response) =>
-    response.json()
-  );
+  return fetch(url).then((response) => response.json());
 }
 
 export const EMAIL_VALIDATION_CHECK = new RegExp(
