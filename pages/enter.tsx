@@ -17,7 +17,11 @@ const DynamicComponent = dynamic(
     new Promise((resolve) =>
       setTimeout(() => resolve(import('@components/dynamicComponent')), 3000)
     ),
-  { ssr: false, suspense: true, loading: () => <span>loading from next</span> }
+  {
+    ssr: false,
+    suspense: true,
+    loading: () => <span>loading from next dynamic</span>,
+  }
 );
 
 interface IEnterForm {
